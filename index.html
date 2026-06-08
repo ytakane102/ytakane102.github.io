@@ -1,54 +1,53 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
-    <title>Document</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>共闘コードネーム - AIシンクロテスト</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div id="app-container">
     <header>
-        <div class="container">
-            <img src="plf.JPG" alt="アイコン画像" class="profile-image">
-            <h1><ruby>高根悠史<rt>たかねゆうし</rt></ruby></h1>
-        </div>
+      <h1>AI共闘コードネーム</h1>
+      <div class="status-bar">
+        <span class="turn-info">あなたのターン</span>
+        <span class="score-info">残り: <span id="ally-left">8</span>枚</span>
+      </div>
     </header>
 
-    <main class="container">
-        <section class="about">
-            <p>こんにちは。<br>
-            ポートフォリオをご覧いただきありがとうございます。</p>
-            <h2 class="section-title">私について</h2>
-        </section>
-
-        <section id="details">
-            <div class="flex-container">
-                <div class="flex-item">
-                    <h3>【学歴】</h3>
-                    <ul>
-                        <li>2021年3月 清水町立清水中学校 卒業</li>
-                        <li>2024年3月 静岡県立韮山高等学校 卒業</li>
-                        <li>2028年3月 早稲田大学人間科学部人間情報科学科 卒業予定</li>
-                    </ul>
-                </div>
-                <div class="flex-item">
-                    <h3>【取得資格】</h3>
-                    <ul>
-                        <li>2025年3月　基本情報技術者試験　合格</li>
-                        <li>2025年12月　統計検定準1級　合格</li>
-                    </ul>
-                </div>
-            </div>
-        </section>
-
+    <main>
+      <div id="board" class="board-grid">
+        </div>
     </main>
 
-    <footer>
-        <h2>連絡先</h2>
-        <div class="contact">
-            <p>メールアドレス</p>
-            <a href="yushi20051005@akane.waseda.jp">yushi20051005@akane.waseda.jp</a>
+    <section class="xai-area">
+      <div class="ai-character">
+        <div class="ai-icon">🤖</div>
+        <div class="ai-bubble" id="ai-message">
+          マスター、ヒントをお願いします！ベクトル空間の準備はできています。
         </div>
+      </div>
+      <div id="vector-graph" class="vector-graph hidden">
+        <div class="graph-row"><span class="word">1位: 鯨</span> <progress max="100" value="85"></progress> <span class="score">0.85</span></div>
+        <div class="graph-row"><span class="word">2位: 卵</span> <progress max="100" value="82"></progress> <span class="score">0.82</span></div>
+      </div>
+    </section>
+
+    <footer class="input-area">
+      <div class="input-group">
+        <input type="text" id="hint-word" placeholder="ヒント単語 (例: うみ)">
+        <select id="hint-number">
+          <option value="1">1枚</option>
+          <option value="2">2枚</option>
+          <option value="3">3枚</option>
+          <option value="4">4枚</option>
+        </select>
+      </div>
+      <button id="submit-btn" onclick="submitHint()">AIに伝える</button>
     </footer>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
