@@ -23,13 +23,17 @@
 
 body {
   min-height: 100vh;
+  min-height: 100dvh;
   font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", sans-serif;
   color: var(--text);
   background:
     radial-gradient(circle at 18% 12%, rgba(255, 45, 223, 0.26), transparent 27%),
     radial-gradient(circle at 82% 20%, rgba(53, 255, 242, 0.22), transparent 26%),
     linear-gradient(135deg, #05070b 0%, #131020 48%, #060b10 100%);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 body::before {
@@ -64,10 +68,11 @@ body::after {
   position: relative;
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100vh;
+  min-height: 100dvh;
   max-width: 500px;
   margin: 0 auto;
-  overflow: hidden;
+  overflow: visible;
   background: linear-gradient(180deg, rgba(7, 9, 18, 0.96), rgba(13, 14, 23, 0.96));
   border-inline: 1px solid rgba(53, 255, 242, 0.28);
   box-shadow:
