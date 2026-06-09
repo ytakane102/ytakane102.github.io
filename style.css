@@ -90,6 +90,112 @@ body::after {
     linear-gradient(to bottom, rgba(255, 255, 255, 0.04), transparent 14%);
 }
 
+.start-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(53, 255, 242, 0.16), transparent 28%),
+    linear-gradient(180deg, rgba(5, 7, 11, 0.98), rgba(14, 11, 22, 0.98));
+}
+
+.start-content {
+  display: grid;
+  justify-items: center;
+  gap: 22px;
+  width: min(100%, 360px);
+  text-align: center;
+}
+
+.start-content h1 {
+  color: #ffffff;
+  font-size: 1.85rem;
+  line-height: 1.18;
+  letter-spacing: 0;
+  text-shadow:
+    0 0 14px rgba(53, 255, 242, 0.75),
+    2px 0 0 rgba(255, 45, 223, 0.72);
+}
+
+#start-btn {
+  width: min(100%, 260px);
+  min-height: 58px;
+  padding: 14px 20px;
+  color: #05070b;
+  font-size: 1.2rem;
+  font-weight: 900;
+  cursor: pointer;
+  background: var(--yellow);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 6px;
+  box-shadow:
+    0 0 24px rgba(255, 239, 90, 0.5),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.18);
+  transition: transform 0.18s ease, filter 0.18s ease;
+}
+
+#start-btn:active {
+  transform: translateY(1px) scale(0.99);
+  filter: brightness(0.94);
+}
+
+.rules-link {
+  color: var(--cyan);
+  font-size: 0.95rem;
+  font-weight: 800;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(53, 255, 242, 0.52);
+}
+
+.rules-link:hover {
+  color: #ffffff;
+  border-bottom-color: #ffffff;
+}
+
+.turn-banner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 20;
+  width: min(100vw, 500px);
+  padding: 18px 14px;
+  color: #061013;
+  font-size: 1.45rem;
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
+  letter-spacing: 0;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -50%) scaleY(0.84);
+  transition: opacity 0.24s ease, transform 0.24s ease;
+  box-shadow:
+    0 0 26px rgba(53, 255, 242, 0.38),
+    inset 0 0 18px rgba(255, 255, 255, 0.2);
+}
+
+.turn-banner.show {
+  opacity: 0.96;
+  transform: translate(-50%, -50%) scaleY(1);
+}
+
+.turn-banner.player-turn {
+  background: linear-gradient(90deg, rgba(34, 216, 255, 0.94), rgba(53, 255, 242, 0.98));
+  border-block: 1px solid rgba(193, 251, 255, 0.92);
+}
+
+.turn-banner.enemy-turn {
+  color: #fff6fb;
+  background: linear-gradient(90deg, rgba(255, 53, 93, 0.94), rgba(255, 45, 223, 0.98));
+  border-block: 1px solid rgba(255, 190, 230, 0.9);
+  box-shadow:
+    0 0 26px rgba(255, 45, 111, 0.42),
+    inset 0 0 18px rgba(255, 255, 255, 0.16);
+}
+
 /* ヘッダー */
 header {
   position: relative;
@@ -131,6 +237,18 @@ header h1 {
   border: 1px solid rgba(53, 255, 242, 0.34);
   background: rgba(0, 0, 0, 0.22);
   box-shadow: inset 0 0 12px rgba(53, 255, 242, 0.13);
+}
+
+.turn-info.player-turn,
+.score-info.player-turn {
+  color: var(--cyan);
+  border-color: rgba(53, 255, 242, 0.34);
+}
+
+.turn-info.enemy-turn,
+.score-info.enemy-turn {
+  color: var(--red);
+  border-color: rgba(255, 69, 105, 0.46);
 }
 
 .score-info {
@@ -402,121 +520,3 @@ progress::-webkit-progress-bar {
   outline: none;
 }
 
-#hint-word {
-  flex-grow: 1;
-  min-width: 0;
-  padding: 10px 11px;
-}
-
-#hint-word::placeholder {
-  color: rgba(237, 247, 255, 0.46);
-}
-
-#hint-number {
-  width: 92px;
-  padding: 10px 9px;
-}
-
-#hint-word:focus,
-#hint-number:focus {
-  border-color: var(--magenta);
-  box-shadow:
-    0 0 16px rgba(255, 45, 223, 0.25),
-    inset 0 0 16px rgba(53, 255, 242, 0.09);
-}
-
-#submit-btn {
-  width: 100%;
-  min-height: 46px;
-  padding: 12px;
-  color: #061013;
-  font-size: 1rem;
-  font-weight: 900;
-  cursor: pointer;
-  background:
-    linear-gradient(90deg, var(--cyan), var(--yellow) 52%, var(--magenta));
-  border: none;
-  border-radius: 6px;
-  box-shadow:
-    0 0 20px rgba(53, 255, 242, 0.32),
-    0 0 18px rgba(255, 45, 223, 0.18);
-  transition: transform 0.18s ease, filter 0.18s ease, opacity 0.18s ease;
-}
-
-#submit-btn:active {
-  transform: translateY(1px) scale(0.99);
-  filter: brightness(0.92);
-}
-
-#submit-btn:disabled {
-  cursor: wait;
-  opacity: 0.7;
-  filter: grayscale(0.18);
-}
-
-@media (max-height: 680px) {
-  header {
-    padding-block: 10px;
-  }
-
-  main {
-    padding-top: 10px;
-  }
-
-  .xai-area {
-    padding-block: 9px;
-  }
-
-  .input-area {
-    padding-block: 10px;
-  }
-}
-
-/* =========================================
-   スパイマスター機能のUI
-========================================= */
-/* 切り替えボタン */
-#spymaster-toggle-btn {
-  margin-top: 12px;
-  width: 100%;
-  padding: 8px;
-  font-size: 0.85rem;
-  font-weight: 800;
-  color: #061013;
-  background: var(--cyan);
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  box-shadow: var(--shadow-cyan);
-  transition: all 0.2s ease;
-}
-
-#spymaster-toggle-btn.hidden-mode {
-  background: rgba(0, 0, 0, 0.34);
-  color: var(--muted);
-  border: 1px solid rgba(53, 255, 242, 0.36);
-  box-shadow: none;
-}
-
-/* スパイマスターモード時の未めくりカードの透視スタイル */
-/* ※すでにめくられているカード（.ally等が含まれないもの）にだけ適用 */
-#board.spymaster-mode .card:not(.ally):not(.enemy):not(.neutral):not(.assassin)[data-role="ally"] {
-  background: rgba(34, 216, 255, 0.15);
-  border: 2px solid #22d8ff;
-}
-
-#board.spymaster-mode .card:not(.ally):not(.enemy):not(.neutral):not(.assassin)[data-role="enemy"] {
-  background: rgba(255, 45, 223, 0.15);
-  border: 2px solid #ff2ddf;
-}
-
-#board.spymaster-mode .card:not(.ally):not(.enemy):not(.neutral):not(.assassin)[data-role="neutral"] {
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(255, 255, 255, 0.6);
-}
-
-#board.spymaster-mode .card:not(.ally):not(.enemy):not(.neutral):not(.assassin)[data-role="assassin"] {
-  background: rgba(255, 239, 90, 0.1);
-  border: 2px solid #ffef5a;
-  color: #ffef5a;
-}
