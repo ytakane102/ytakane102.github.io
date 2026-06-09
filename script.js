@@ -12,27 +12,81 @@ let boardCards = []; // 盤面の25枚のカードデータ {word, role, isRevea
 let allyLeft = 8;    // 残りの正解（味方）の数
 let enemyLeft = 8;
 let isGameOver = false; // ゲーム終了フラグ
+let currentTurn = "player"; // "player" or "enemy"
+let firstTurn = "player"; // 先攻チーム。プレイヤーは常に青、相手は常に赤
+let isWaitingForEnemyTurn = false;
+
+function startGame() {
+  const startScreen = document.getElementById("start-screen");
+  if (startScreen) {
+    startScreen.classList.add("hidden");
+  }
+  initGame();
+}
+
+function updateTurnUI(turn) {
+  currentTurn = turn;
+  const turnInfo = document.querySelector(".turn-info");
+  const scoreInfo = document.querySelector(".score-info");
+  const turnBanner = document.getElementById("turn-banner");
+  if (!turnInfo || !scoreInfo || !turnBanner) return;
+
+  turnInfo.classList.toggle("player-turn", turn === "player");
+  turnInfo.classList.toggle("enemy-turn", turn === "enemy");
+  scoreInfo.classList.toggle("player-turn", turn === "player");
+  scoreInfo.classList.toggle("enemy-turn", turn === "enemy");
+  turnBanner.classList.toggle("player-turn", turn === "player");
+  turnBanner.classList.toggle("enemy-turn", turn === "enemy");
+  turnBanner.classList.remove("show");
+
+  if (turn === "player") {
+    turnInfo.innerText = "あなたのターン";
+    turnBanner.innerText = "あなたのターン";
+  } else {
+    turnInfo.innerText = "相手のターン";
+    turnBanner.innerText = "相手のターン";
+  }
+
+  requestAnimationFrame(() => {
+    turnBanner.classList.add("show");
+    window.clearTimeout(turnBanner.hideTimer);
+    turnBanner.hideTimer = window.setTimeout(() => {
+      turnBanner.classList.remove("show");
+    }, 1400);
+  });
+}
 
 // --------------------------------------------------
 // ① ゲームの初期化（ランダム盤面生成）
 // --------------------------------------------------
 function initGame() {
   isGameOver = false;
-  allyLeft = 8;
-  enemyLeft = 8;
+  isWaitingForEnemyTurn = false;
+  firstTurn = Math.random() < 0.5 ? "player" : "enemy";
+  const playerGoesFirst = firstTurn === "player";
+  allyLeft = playerGoesFirst ? 9 : 8;
+  enemyLeft = playerGoesFirst ? 8 : 9;
   document.getElementById("ally-left").innerText = allyLeft;
-  document.getElementById("ai-message").innerText = "マスター、ヒントをお願いします！";
+  updateTurnUI(firstTurn);
+  const submitBtn = document.getElementById("submit-btn");
+  if (submitBtn) {
+    submitBtn.innerText = playerGoesFirst ? "AIに伝える" : "相手のターンです...";
+    submitBtn.disabled = !playerGoesFirst;
+  }
+  document.getElementById("ai-message").innerText = playerGoesFirst
+    ? "抽選の結果、青チームが先攻です。マスター、ヒントをお願いします！"
+    : "抽選の結果、赤チームが先攻です。相手のターンから始まります。";
   document.getElementById("vector-graph").classList.add("hidden");
 
   // 単語プールをシャッフルして先頭の25個を取得
   const shuffledWords = WORD_POOL.sort(() => Math.random() - 0.5).slice(0, 25);
   
-  // 役割の配列を作成（味方8、暗殺者1、敵8、一般人8）
+  // 役割の配列を作成（先攻9、後攻8、暗殺者1、一般人7）
   const roles = [
-    ...Array(8).fill("ally"),
+    ...Array(allyLeft).fill("ally"),
     ...Array(1).fill("assassin"),
-    ...Array(8).fill("enemy"),
-    ...Array(8).fill("neutral")
+    ...Array(enemyLeft).fill("enemy"),
+    ...Array(7).fill("neutral")
   ];
   const shuffledRoles = roles.sort(() => Math.random() - 0.5);
 
@@ -66,6 +120,10 @@ function initGame() {
     toggleBtn.innerText = "👁️ 答えを隠す";
     toggleBtn.classList.remove("hidden-mode");
   }
+
+  if (!playerGoesFirst) {
+    setTimeout(processEnemyTurn, 1600);
+  }
 }
 
 // --------------------------------------------------
@@ -74,6 +132,16 @@ function initGame() {
 function submitHint() {
   if (isGameOver) {
     alert("ゲームは終了しています。リロードして再挑戦してください！");
+    return;
+  }
+
+  if (isWaitingForEnemyTurn) {
+    startEnemyTurn();
+    return;
+  }
+
+  if (currentTurn !== "player") {
+    alert("今は相手のターンです。しばらくお待ちください。");
     return;
   }
 
@@ -155,12 +223,19 @@ function processAiTurn(hintWord, hintNum) {
     document.getElementById("ai-message").innerHTML = "<b>【GAME CLEAR!!】</b><br>すべての味方を救出しました！私たちの勝利です！";
     document.getElementById("submit-btn").innerText = "クリア！（リロードして再挑戦）";
   } else {
-    // ゲーム続行の場合、敵のターンに移行する
-    document.getElementById("submit-btn").innerText = "敵のターンです...";
-    document.getElementById("submit-btn").disabled = true; 
-    
-    setTimeout(processEnemyTurn, 2000); 
+    // ゲーム続行の場合、手動で敵のターンに移行する
+    isWaitingForEnemyTurn = true;
+    document.getElementById("submit-btn").innerText = "相手のターンへ";
+    document.getElementById("submit-btn").disabled = false;
   }
+}
+
+function startEnemyTurn() {
+  isWaitingForEnemyTurn = false;
+  updateTurnUI("enemy");
+  document.getElementById("submit-btn").innerText = "敵のターンです...";
+  document.getElementById("submit-btn").disabled = true;
+  setTimeout(processEnemyTurn, 600);
 }
 
 // --------------------------------------------------
@@ -261,6 +336,7 @@ function processEnemyTurn() {
 // --------------------------------------------------
 function finishEnemyTurn() {
   setTimeout(() => {
+    updateTurnUI("player");
     document.getElementById("submit-btn").innerText = "次のヒントを出す";
     document.getElementById("submit-btn").disabled = false;
     document.getElementById("hint-word").value = ""; 
@@ -287,5 +363,4 @@ function toggleSpymaster() {
   }
 }
 
-// 起動時に盤面を描画
-window.onload = initGame;
+// 起動時はスタート画面を表示し、スタートボタンで盤面を描画
