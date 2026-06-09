@@ -471,3 +471,52 @@ progress::-webkit-progress-bar {
     padding-block: 10px;
   }
 }
+
+/* =========================================
+   スパイマスター機能のUI
+========================================= */
+/* 切り替えボタン */
+#spymaster-toggle-btn {
+  margin-top: 12px;
+  width: 100%;
+  padding: 8px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #061013;
+  background: var(--cyan);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: var(--shadow-cyan);
+  transition: all 0.2s ease;
+}
+
+#spymaster-toggle-btn.hidden-mode {
+  background: rgba(0, 0, 0, 0.34);
+  color: var(--muted);
+  border: 1px solid rgba(53, 255, 242, 0.36);
+  box-shadow: none;
+}
+
+/* スパイマスターモード時の未めくりカードの透視スタイル */
+/* ※すでにめくられているカード（.ally等が含まれないもの）にだけ適用 */
+#board.spymaster-mode .card:not(.ally):not(.enemy):not(.neutral):not(.assassin)[data-role="ally"] {
+  background: rgba(34, 216, 255, 0.15);
+  border: 2px solid #22d8ff;
+}
+
+#board.spymaster-mode .card:not(.ally):not(.enemy):not(.neutral):not(.assassin)[data-role="enemy"] {
+  background: rgba(255, 45, 223, 0.15);
+  border: 2px solid #ff2ddf;
+}
+
+#board.spymaster-mode .card:not(.ally):not(.enemy):not(.neutral):not(.assassin)[data-role="neutral"] {
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+}
+
+#board.spymaster-mode .card:not(.ally):not(.enemy):not(.neutral):not(.assassin)[data-role="assassin"] {
+  background: rgba(255, 239, 90, 0.1);
+  border: 2px solid #ffef5a;
+  color: #ffef5a;
+}
