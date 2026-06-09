@@ -22,7 +22,7 @@ function initGame() {
   enemyLeft = 8;
   document.getElementById("ally-left").innerText = allyLeft;
   document.getElementById("ai-message").innerText = "マスター、ヒントをお願いします！";
-  document.getElementById("vector-graph").classList.add("hidden"); // グラフを隠す
+  document.getElementById("vector-graph").classList.add("hidden");
 
   // 単語プールをシャッフルして先頭の25個を取得
   const shuffledWords = WORD_POOL.sort(() => Math.random() - 0.5).slice(0, 25);
@@ -34,7 +34,6 @@ function initGame() {
     ...Array(8).fill("enemy"),
     ...Array(8).fill("neutral")
   ];
-  // 役割もシャッフル
   const shuffledRoles = roles.sort(() => Math.random() - 0.5);
 
   // 盤面データを作成
@@ -53,8 +52,20 @@ function initGame() {
     cardEl.className = "card";
     cardEl.id = cardData.id;
     cardEl.innerText = cardData.word;
+    
+    // スパイマスター機能のためにHTML側に正解データを持たせる
+    cardEl.dataset.role = cardData.role; 
+    
     board.appendChild(cardEl);
   });
+
+  // ゲーム開始時はスパイマスターモードをONにする
+  board.classList.add("spymaster-mode");
+  const toggleBtn = document.getElementById("spymaster-toggle-btn");
+  if(toggleBtn) {
+    toggleBtn.innerText = "👁️ 答えを隠す";
+    toggleBtn.classList.remove("hidden-mode");
+  }
 }
 
 // --------------------------------------------------
@@ -112,9 +123,9 @@ function processAiTurn(hintWord, hintNum) {
     
     // HTML側の見た目を変更
     const cardEl = document.getElementById(card.id);
-    cardEl.classList.add(card.role); // 'ally' や 'assassin' のCSSクラスが付与されて色が変わる
+    cardEl.classList.add(card.role); 
 
-    // グラフの数値を適当に生成（80%〜95%）
+    // グラフの数値を適当に生成
     const dummyScore = (0.95 - (index * 0.05)).toFixed(2);
     graphHtml += `<div class="graph-row"><span class="word">${card.word}</span> <progress max="100" value="${dummyScore * 100}"></progress> <span class="score">${dummyScore}</span></div>`;
 
@@ -141,14 +152,13 @@ function processAiTurn(hintWord, hintNum) {
     document.getElementById("submit-btn").innerText = "ゲーム終了（リロードして再挑戦）";
   } else if (allyLeft <= 0) {
     isGameOver = true;
-    document.getElementById("ai-message").innerHTML = "<b>【GAME CLEAR!!】</b><br>私たちの勝利です！";
+    document.getElementById("ai-message").innerHTML = "<b>【GAME CLEAR!!】</b><br>すべての味方を救出しました！私たちの勝利です！";
     document.getElementById("submit-btn").innerText = "クリア！（リロードして再挑戦）";
   } else {
     // ゲーム続行の場合、敵のターンに移行する
     document.getElementById("submit-btn").innerText = "敵のターンです...";
-    document.getElementById("submit-btn").disabled = true; // 人間の操作をロック
+    document.getElementById("submit-btn").disabled = true; 
     
-    // 2秒後に敵のターンを開始
     setTimeout(processEnemyTurn, 2000); 
   }
 }
@@ -159,14 +169,14 @@ function processAiTurn(hintWord, hintNum) {
 function processEnemyTurn() {
   if (isGameOver) return;
 
-  // 敵のUI演出（味方のグラフを隠す）
+  // 敵のUI演出
   const graphEl = document.getElementById("vector-graph");
   if (graphEl) graphEl.classList.add("hidden");
   
   document.getElementById("ai-message").innerHTML = "<i>敵のAIスパイマスターが最適ヒントを計算中...</i>";
 
   setTimeout(() => {
-    // 1. 敵が狙うターゲット数（1〜2枚）を決定
+    // 1. 敵が狙うターゲット数を決定
     const availableEnemies = boardCards.filter(c => c.role === "enemy" && !c.isRevealed);
     
     if (availableEnemies.length === 0) {
@@ -182,14 +192,13 @@ function processEnemyTurn() {
 
     for (let i = 0; i < targetCount; i++) {
       if (Math.random() < NOISE_PROBABILITY) {
-        // ノイズ発生！敵(赤)以外のカードを勘違いして引いてしまう
+        // ノイズ発生：敵(赤)以外のカードを勘違いして引く
         const otherCards = boardCards.filter(c => c.role !== "enemy" && !c.isRevealed && !chosenCards.includes(c));
         if (otherCards.length > 0) {
           const mistakeCard = otherCards[Math.floor(Math.random() * otherCards.length)];
           chosenCards.push(mistakeCard);
         }
       } else {
-        // 正常に敵(赤)のカードを引く
         chosenCards.push(availableEnemies[i]);
       }
     }
@@ -256,6 +265,26 @@ function finishEnemyTurn() {
     document.getElementById("submit-btn").disabled = false;
     document.getElementById("hint-word").value = ""; 
   }, 2000); 
+}
+
+// --------------------------------------------------
+// ⑦ スパイマスターモード（答え透視）の切り替え
+// --------------------------------------------------
+function toggleSpymaster() {
+  const board = document.getElementById("board");
+  const btn = document.getElementById("spymaster-toggle-btn");
+  
+  if (board.classList.contains("spymaster-mode")) {
+    // モードOFF（答えを隠す）
+    board.classList.remove("spymaster-mode");
+    btn.innerText = "👁️ 答えを見る";
+    btn.classList.add("hidden-mode");
+  } else {
+    // モードON（答えを表示する）
+    board.classList.add("spymaster-mode");
+    btn.innerText = "👁️ 答えを隠す";
+    btn.classList.remove("hidden-mode");
+  }
 }
 
 // 起動時に盤面を描画
