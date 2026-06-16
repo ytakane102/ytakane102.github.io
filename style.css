@@ -155,6 +155,54 @@ body::after {
   border-bottom-color: #ffffff;
 }
 
+.result-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: #ffffff;
+  text-align: center;
+  opacity: 0;
+  transform: scale(1.04);
+  transition: opacity 0.28s ease, transform 0.28s ease;
+}
+
+.result-overlay.show {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.result-overlay.win {
+  background:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.2), transparent 32%),
+    linear-gradient(145deg, #22d8ff, #2277ff);
+}
+
+.result-overlay.lose {
+  background:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.16), transparent 32%),
+    linear-gradient(145deg, #ff355d, #ff2ddf);
+}
+
+.result-overlay.assassin-result {
+  background:
+    radial-gradient(circle at center, rgba(255, 239, 90, 0.12), transparent 34%),
+    linear-gradient(145deg, #020203, #101014);
+}
+
+.result-text {
+  max-width: min(90vw, 460px);
+  font-size: clamp(2.3rem, 12vw, 4.4rem);
+  font-weight: 900;
+  line-height: 1.16;
+  letter-spacing: 0;
+  text-shadow:
+    0 0 18px rgba(255, 255, 255, 0.48),
+    0 3px 16px rgba(0, 0, 0, 0.4);
+}
+
 .turn-banner {
   position: fixed;
   top: 50%;
