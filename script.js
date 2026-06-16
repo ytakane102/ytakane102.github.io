@@ -15,6 +15,8 @@ let isGameOver = false; // ゲーム終了フラグ
 let currentTurn = "player"; // "player" or "enemy"
 let firstTurn = "player"; // 先攻チーム。プレイヤーは常に青、相手は常に赤
 let isWaitingForEnemyTurn = false;
+let resultShowTimer = null;
+let resultHideTimer = null;
 
 function startGame() {
   const startScreen = document.getElementById("start-screen");
@@ -22,6 +24,47 @@ function startGame() {
     startScreen.classList.add("hidden");
   }
   initGame();
+}
+
+function updateScoreUI() {
+  const currentLeft = document.getElementById("current-left");
+  if (!currentLeft) return;
+
+  currentLeft.innerText = currentTurn === "enemy" ? enemyLeft : allyLeft;
+}
+
+function showResultOverlay(type, message) {
+  const resultOverlay = document.getElementById("result-overlay");
+  const resultText = document.getElementById("result-text");
+  if (!resultOverlay || !resultText) return;
+
+  window.clearTimeout(resultShowTimer);
+  window.clearTimeout(resultHideTimer);
+  resultText.innerText = message;
+  resultOverlay.className = "result-overlay hidden";
+
+  resultShowTimer = window.setTimeout(() => {
+    resultOverlay.className = `result-overlay ${type}`;
+    requestAnimationFrame(() => {
+      resultOverlay.classList.add("show");
+    });
+
+    resultHideTimer = window.setTimeout(() => {
+      resultOverlay.classList.remove("show");
+      window.setTimeout(() => {
+        resultOverlay.className = "result-overlay hidden";
+      }, 280);
+    }, 2000);
+  }, 2000);
+}
+
+function hideResultOverlay() {
+  const resultOverlay = document.getElementById("result-overlay");
+  if (!resultOverlay) return;
+
+  window.clearTimeout(resultShowTimer);
+  window.clearTimeout(resultHideTimer);
+  resultOverlay.className = "result-overlay hidden";
 }
 
 function updateTurnUI(turn) {
@@ -46,6 +89,7 @@ function updateTurnUI(turn) {
     turnInfo.innerText = "相手のターン";
     turnBanner.innerText = "相手のターン";
   }
+  updateScoreUI();
 
   requestAnimationFrame(() => {
     turnBanner.classList.add("show");
@@ -62,11 +106,11 @@ function updateTurnUI(turn) {
 function initGame() {
   isGameOver = false;
   isWaitingForEnemyTurn = false;
+  hideResultOverlay();
   firstTurn = Math.random() < 0.5 ? "player" : "enemy";
   const playerGoesFirst = firstTurn === "player";
   allyLeft = playerGoesFirst ? 9 : 8;
   enemyLeft = playerGoesFirst ? 8 : 9;
-  document.getElementById("ally-left").innerText = allyLeft;
   updateTurnUI(firstTurn);
   const submitBtn = document.getElementById("submit-btn");
   if (submitBtn) {
@@ -202,7 +246,7 @@ function processAiTurn(hintWord, hintNum) {
   });
 
   // UIの更新
-  document.getElementById("ally-left").innerText = allyLeft;
+  updateScoreUI();
   document.getElementById("vector-graph").innerHTML = graphHtml;
   document.getElementById("vector-graph").classList.remove("hidden");
 
@@ -218,10 +262,12 @@ function processAiTurn(hintWord, hintNum) {
     isGameOver = true;
     document.getElementById("ai-message").innerHTML = "<b>【GAME OVER】</b><br>暗殺者を選んでしまいました…マスター、ごめんなさい！";
     document.getElementById("submit-btn").innerText = "ゲーム終了（リロードして再挑戦）";
+    showResultOverlay("assassin-result", "GAME OVER");
   } else if (allyLeft <= 0) {
     isGameOver = true;
     document.getElementById("ai-message").innerHTML = "<b>【GAME CLEAR!!】</b><br>すべての味方を救出しました！私たちの勝利です！";
     document.getElementById("submit-btn").innerText = "クリア！（リロードして再挑戦）";
+    showResultOverlay("win", "YOU WIN");
   } else {
     // ゲーム続行の場合、手動で敵のターンに移行する
     isWaitingForEnemyTurn = true;
@@ -294,10 +340,10 @@ function processEnemyTurn() {
       if (card.role === "enemy") enemyLeft--;
       if (card.role === "ally") {
         allyLeft--;
-        document.getElementById("ally-left").innerText = allyLeft;
       }
       if (card.role === "assassin") hitAssassin = true;
     });
+    updateScoreUI();
 
     // 5. 敵の行動結果メッセージを作成
     let resultMessage = `<span style="color:#dc2626; font-weight:bold;">【敵ターンの結果】</span><br>`;
@@ -317,14 +363,17 @@ function processEnemyTurn() {
       isGameOver = true;
       document.getElementById("ai-message").innerHTML += "<br><b>【GAME CLEAR!!】</b><br>敵が暗殺者を引いて自爆しました！私たちの勝利です！";
       document.getElementById("submit-btn").innerText = "クリア！（リロードして再挑戦）";
+      showResultOverlay("win", "YOU WIN");
     } else if (enemyLeft <= 0) {
       isGameOver = true;
       document.getElementById("ai-message").innerHTML += "<br><b>【GAME OVER】</b><br>先に敵にすべて当てられてしまいました…。";
       document.getElementById("submit-btn").innerText = "敗北（リロードして再挑戦）";
+      showResultOverlay("lose", "YOU LOSE");
     } else if (allyLeft <= 0) {
        isGameOver = true;
        document.getElementById("ai-message").innerHTML += "<br><b>【GAME CLEAR!!】</b><br>敵が勘違いで最後の味方を当ててくれました！ラッキー勝利！";
        document.getElementById("submit-btn").innerText = "クリア！（リロードして再挑戦）";
+       showResultOverlay("win", "YOU WIN");
     } else {
       finishEnemyTurn();
     }
