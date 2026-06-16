@@ -1,0 +1,415 @@
+// 1. 大容量の単語プール（ここから毎回ランダムに25個選ばれます）
+const WORD_POOL = [
+  "りんご", "宇宙", "パスワード", "病院", "赤", "鍵", "ガラス", "東京", "太陽", "電池",
+  "データ", "歴史", "風", "鯨", "ゲーム", "ロボット", "紙", "山", "時計", "毒",
+  "卵", "車", "パソコン", "音楽", "雪", "猫", "犬", "鳥", "本", "映画",
+  "テレビ", "机", "椅子", "ペン", "ノート", "学校", "会社", "電車", "飛行機", "船",
+  "愛", "平和", "未来", "魔法", "科学", "星", "夢", "鏡", "森", "砂漠"
+];
+
+// ゲームの現在の状態（State）を管理する変数
+let boardCards = []; // 盤面の25枚のカードデータ {word, role, isRevealed}
+let allyLeft = 8;    // 残りの正解（味方）の数
+let enemyLeft = 8;
+let isGameOver = false; // ゲーム終了フラグ
+let currentTurn = "player"; // "player" or "enemy"
+let firstTurn = "player"; // 先攻チーム。プレイヤーは常に青、相手は常に赤
+let isWaitingForEnemyTurn = false;
+let resultShowTimer = null;
+let resultHideTimer = null;
+
+function startGame() {
+  const startScreen = document.getElementById("start-screen");
+  if (startScreen) {
+    startScreen.classList.add("hidden");
+  }
+  initGame();
+}
+
+function updateScoreUI() {
+  const currentLeft = document.getElementById("current-left");
+  if (!currentLeft) return;
+
+  currentLeft.innerText = currentTurn === "enemy" ? enemyLeft : allyLeft;
+}
+
+function showResultOverlay(type, message) {
+  const resultOverlay = document.getElementById("result-overlay");
+  const resultText = document.getElementById("result-text");
+  if (!resultOverlay || !resultText) return;
+
+  window.clearTimeout(resultShowTimer);
+  window.clearTimeout(resultHideTimer);
+  resultText.innerText = message;
+  resultOverlay.className = "result-overlay hidden";
+
+  resultShowTimer = window.setTimeout(() => {
+    resultOverlay.className = `result-overlay ${type}`;
+    requestAnimationFrame(() => {
+      resultOverlay.classList.add("show");
+    });
+
+    resultHideTimer = window.setTimeout(() => {
+      resultOverlay.classList.remove("show");
+      window.setTimeout(() => {
+        resultOverlay.className = "result-overlay hidden";
+      }, 280);
+    }, 2000);
+  }, 2000);
+}
+
+function hideResultOverlay() {
+  const resultOverlay = document.getElementById("result-overlay");
+  if (!resultOverlay) return;
+
+  window.clearTimeout(resultShowTimer);
+  window.clearTimeout(resultHideTimer);
+  resultOverlay.className = "result-overlay hidden";
+}
+
+function updateTurnUI(turn) {
+  currentTurn = turn;
+  const turnInfo = document.querySelector(".turn-info");
+  const scoreInfo = document.querySelector(".score-info");
+  const turnBanner = document.getElementById("turn-banner");
+  if (!turnInfo || !scoreInfo || !turnBanner) return;
+
+  turnInfo.classList.toggle("player-turn", turn === "player");
+  turnInfo.classList.toggle("enemy-turn", turn === "enemy");
+  scoreInfo.classList.toggle("player-turn", turn === "player");
+  scoreInfo.classList.toggle("enemy-turn", turn === "enemy");
+  turnBanner.classList.toggle("player-turn", turn === "player");
+  turnBanner.classList.toggle("enemy-turn", turn === "enemy");
+  turnBanner.classList.remove("show");
+
+  if (turn === "player") {
+    turnInfo.innerText = "あなたのターン";
+    turnBanner.innerText = "あなたのターン";
+  } else {
+    turnInfo.innerText = "相手のターン";
+    turnBanner.innerText = "相手のターン";
+  }
+  updateScoreUI();
+
+  requestAnimationFrame(() => {
+    turnBanner.classList.add("show");
+    window.clearTimeout(turnBanner.hideTimer);
+    turnBanner.hideTimer = window.setTimeout(() => {
+      turnBanner.classList.remove("show");
+    }, 1400);
+  });
+}
+
+// --------------------------------------------------
+// ① ゲームの初期化（ランダム盤面生成）
+// --------------------------------------------------
+function initGame() {
+  isGameOver = false;
+  isWaitingForEnemyTurn = false;
+  hideResultOverlay();
+  firstTurn = Math.random() < 0.5 ? "player" : "enemy";
+  const playerGoesFirst = firstTurn === "player";
+  allyLeft = playerGoesFirst ? 9 : 8;
+  enemyLeft = playerGoesFirst ? 8 : 9;
+  updateTurnUI(firstTurn);
+  const submitBtn = document.getElementById("submit-btn");
+  if (submitBtn) {
+    submitBtn.innerText = playerGoesFirst ? "AIに伝える" : "相手のターンです...";
+    submitBtn.disabled = !playerGoesFirst;
+  }
+  document.getElementById("ai-message").innerText = playerGoesFirst
+    ? "抽選の結果、青チームが先攻です。マスター、ヒントをお願いします！"
+    : "抽選の結果、赤チームが先攻です。相手のターンから始まります。";
+  document.getElementById("vector-graph").classList.add("hidden");
+
+  // 単語プールをシャッフルして先頭の25個を取得
+  const shuffledWords = WORD_POOL.sort(() => Math.random() - 0.5).slice(0, 25);
+  
+  // 役割の配列を作成（先攻9、後攻8、暗殺者1、一般人7）
+  const roles = [
+    ...Array(allyLeft).fill("ally"),
+    ...Array(1).fill("assassin"),
+    ...Array(enemyLeft).fill("enemy"),
+    ...Array(7).fill("neutral")
+  ];
+  const shuffledRoles = roles.sort(() => Math.random() - 0.5);
+
+  // 盤面データを作成
+  boardCards = shuffledWords.map((word, index) => ({
+    id: `card-${index}`,
+    word: word,
+    role: shuffledRoles[index],
+    isRevealed: false
+  }));
+
+  // HTMLにカードを描画
+  const board = document.getElementById("board");
+  board.innerHTML = ""; 
+  boardCards.forEach((cardData) => {
+    const cardEl = document.createElement("div");
+    cardEl.className = "card";
+    cardEl.id = cardData.id;
+    cardEl.innerText = cardData.word;
+    
+    // スパイマスター機能のためにHTML側に正解データを持たせる
+    cardEl.dataset.role = cardData.role; 
+    
+    board.appendChild(cardEl);
+  });
+
+  // ゲーム開始時はスパイマスターモードをONにする
+  board.classList.add("spymaster-mode");
+  const toggleBtn = document.getElementById("spymaster-toggle-btn");
+  if(toggleBtn) {
+    toggleBtn.innerText = "👁️ 答えを隠す";
+    toggleBtn.classList.remove("hidden-mode");
+  }
+
+  if (!playerGoesFirst) {
+    setTimeout(processEnemyTurn, 1600);
+  }
+}
+
+// --------------------------------------------------
+// ② ヒント送信時の処理（ターンの開始）
+// --------------------------------------------------
+function submitHint() {
+  if (isGameOver) {
+    alert("ゲームは終了しています。リロードして再挑戦してください！");
+    return;
+  }
+
+  if (isWaitingForEnemyTurn) {
+    startEnemyTurn();
+    return;
+  }
+
+  if (currentTurn !== "player") {
+    alert("今は相手のターンです。しばらくお待ちください。");
+    return;
+  }
+
+  const hintWord = document.getElementById("hint-word").value;
+  const hintNum = parseInt(document.getElementById("hint-number").value, 10);
+  
+  if (!hintWord) {
+    alert("ヒント単語を入力してください！");
+    return;
+  }
+
+  // ボタンとUIをロック
+  const btn = document.getElementById("submit-btn");
+  btn.innerText = "AIが推論中...";
+  btn.disabled = true;
+  document.getElementById("ai-message").innerText = `「${hintWord}」（${hintNum}枚）ですね。ベクトル距離を計算しています...`;
+
+  // 1.5秒後にAIが回答するシミュレーション
+  setTimeout(() => {
+    processAiTurn(hintWord, hintNum);
+  }, 1500);
+}
+
+// --------------------------------------------------
+// ③ AIの回答と勝敗判定
+// --------------------------------------------------
+function processAiTurn(hintWord, hintNum) {
+  // ■ テスト用の特別挙動（"ドボン"と入力するとわざと暗殺者を引く）
+  let chosenCards = [];
+  if (hintWord === "ドボン") {
+    const assassinCard = boardCards.find(c => c.role === "assassin");
+    chosenCards.push(assassinCard);
+  } else {
+    // 通常のテスト：まだめくられていない「味方(ally)」のカードから、指定枚数だけ賢く選ぶ（モック挙動）
+    const availableAllies = boardCards.filter(c => c.role === "ally" && !c.isRevealed);
+    chosenCards = availableAllies.slice(0, Math.min(hintNum, availableAllies.length));
+  }
+
+  // グラフ用のHTMLを生成（モック）
+  let graphHtml = "";
+  let chosenWordNames = [];
+
+  // 選んだカードを1枚ずつめくる処理
+  chosenCards.forEach((card, index) => {
+    card.isRevealed = true;
+    chosenWordNames.push(card.word);
+    
+    // HTML側の見た目を変更
+    const cardEl = document.getElementById(card.id);
+    cardEl.classList.add(card.role); 
+
+    // グラフの数値を適当に生成
+    const dummyScore = (0.95 - (index * 0.05)).toFixed(2);
+    graphHtml += `<div class="graph-row"><span class="word">${card.word}</span> <progress max="100" value="${dummyScore * 100}"></progress> <span class="score">${dummyScore}</span></div>`;
+
+    // 味方だったら残りを減らす
+    if (card.role === "ally") allyLeft--;
+  });
+
+  // UIの更新
+  updateScoreUI();
+  document.getElementById("vector-graph").innerHTML = graphHtml;
+  document.getElementById("vector-graph").classList.remove("hidden");
+
+  // メッセージの更新
+  document.getElementById("ai-message").innerText = `「${hintWord}」のベクトルから『${chosenWordNames.join("、")}』を選択しました！`;
+
+  // --------------------------------------------------
+  // ④ 勝利・敗北のチェック（味方ターン終了時）
+  // --------------------------------------------------
+  const hitAssassin = chosenCards.some(c => c.role === "assassin");
+
+  if (hitAssassin) {
+    isGameOver = true;
+    document.getElementById("ai-message").innerHTML = "<b>【GAME OVER】</b><br>暗殺者を選んでしまいました…マスター、ごめんなさい！";
+    document.getElementById("submit-btn").innerText = "ゲーム終了（リロードして再挑戦）";
+    showResultOverlay("assassin-result", "GAME OVER");
+  } else if (allyLeft <= 0) {
+    isGameOver = true;
+    document.getElementById("ai-message").innerHTML = "<b>【GAME CLEAR!!】</b><br>すべての味方を救出しました！私たちの勝利です！";
+    document.getElementById("submit-btn").innerText = "クリア！（リロードして再挑戦）";
+    showResultOverlay("win", "YOU WIN");
+  } else {
+    // ゲーム続行の場合、手動で敵のターンに移行する
+    isWaitingForEnemyTurn = true;
+    document.getElementById("submit-btn").innerText = "相手のターンへ";
+    document.getElementById("submit-btn").disabled = false;
+  }
+}
+
+function startEnemyTurn() {
+  isWaitingForEnemyTurn = false;
+  updateTurnUI("enemy");
+  document.getElementById("submit-btn").innerText = "敵のターンです...";
+  document.getElementById("submit-btn").disabled = true;
+  setTimeout(processEnemyTurn, 600);
+}
+
+// --------------------------------------------------
+// ⑤ 敵ターンの自動処理（ノイズシミュレーション付き）
+// --------------------------------------------------
+function processEnemyTurn() {
+  if (isGameOver) return;
+
+  // 敵のUI演出
+  const graphEl = document.getElementById("vector-graph");
+  if (graphEl) graphEl.classList.add("hidden");
+  
+  document.getElementById("ai-message").innerHTML = "<i>敵のAIスパイマスターが最適ヒントを計算中...</i>";
+
+  setTimeout(() => {
+    // 1. 敵が狙うターゲット数を決定
+    const availableEnemies = boardCards.filter(c => c.role === "enemy" && !c.isRevealed);
+    
+    if (availableEnemies.length === 0) {
+      finishEnemyTurn();
+      return;
+    }
+    
+    const targetCount = Math.min(Math.floor(Math.random() * 2) + 1, availableEnemies.length);
+    let chosenCards = [];
+    
+    // 2. ベクトルノイズのシミュレーション（25%の確率で計算ミス・深読みをする）
+    const NOISE_PROBABILITY = 0.25; 
+
+    for (let i = 0; i < targetCount; i++) {
+      if (Math.random() < NOISE_PROBABILITY) {
+        // ノイズ発生：敵(赤)以外のカードを勘違いして引く
+        const otherCards = boardCards.filter(c => c.role !== "enemy" && !c.isRevealed && !chosenCards.includes(c));
+        if (otherCards.length > 0) {
+          const mistakeCard = otherCards[Math.floor(Math.random() * otherCards.length)];
+          chosenCards.push(mistakeCard);
+        }
+      } else {
+        chosenCards.push(availableEnemies[i]);
+      }
+    }
+
+    // 3. ダミーヒントの生成
+    const dummyHints = ["概念", "物質", "行動", "自然", "人工物", "空間", "情報"];
+    const fakeHint = dummyHints[Math.floor(Math.random() * dummyHints.length)];
+
+    // 4. カードをめくる処理
+    let chosenWordNames = [];
+    let hitAssassin = false;
+
+    chosenCards.forEach(card => {
+      card.isRevealed = true;
+      chosenWordNames.push(card.word);
+      document.getElementById(card.id).classList.add(card.role); 
+      
+      if (card.role === "enemy") enemyLeft--;
+      if (card.role === "ally") {
+        allyLeft--;
+      }
+      if (card.role === "assassin") hitAssassin = true;
+    });
+    updateScoreUI();
+
+    // 5. 敵の行動結果メッセージを作成
+    let resultMessage = `<span style="color:#dc2626; font-weight:bold;">【敵ターンの結果】</span><br>`;
+    resultMessage += `敵マスターのヒント: 『${fakeHint} (${targetCount}枚)』<br>`;
+    resultMessage += `敵AIは『${chosenWordNames.join("、")}』を選びました！<br>`;
+    
+    // AIの勘違い（ノイズ）が発生した場合のログ追加
+    const hasMistake = chosenCards.some(c => c.role !== "enemy");
+    if (hasMistake && !hitAssassin) {
+      resultMessage += `<span style="color:#2563eb; font-size:0.85em;">（※ベクトルノイズにより敵AIが深読みしてミスしました！）</span>`;
+    }
+
+    document.getElementById("ai-message").innerHTML = resultMessage;
+
+    // 6. 勝敗チェックとターン終了処理
+    if (hitAssassin) {
+      isGameOver = true;
+      document.getElementById("ai-message").innerHTML += "<br><b>【GAME CLEAR!!】</b><br>敵が暗殺者を引いて自爆しました！私たちの勝利です！";
+      document.getElementById("submit-btn").innerText = "クリア！（リロードして再挑戦）";
+      showResultOverlay("win", "YOU WIN");
+    } else if (enemyLeft <= 0) {
+      isGameOver = true;
+      document.getElementById("ai-message").innerHTML += "<br><b>【GAME OVER】</b><br>先に敵にすべて当てられてしまいました…。";
+      document.getElementById("submit-btn").innerText = "敗北（リロードして再挑戦）";
+      showResultOverlay("lose", "YOU LOSE");
+    } else if (allyLeft <= 0) {
+       isGameOver = true;
+       document.getElementById("ai-message").innerHTML += "<br><b>【GAME CLEAR!!】</b><br>敵が勘違いで最後の味方を当ててくれました！ラッキー勝利！";
+       document.getElementById("submit-btn").innerText = "クリア！（リロードして再挑戦）";
+       showResultOverlay("win", "YOU WIN");
+    } else {
+      finishEnemyTurn();
+    }
+  }, 2000);
+}
+
+// --------------------------------------------------
+// ⑥ 敵ターン終了後の復帰処理
+// --------------------------------------------------
+function finishEnemyTurn() {
+  setTimeout(() => {
+    updateTurnUI("player");
+    document.getElementById("submit-btn").innerText = "次のヒントを出す";
+    document.getElementById("submit-btn").disabled = false;
+    document.getElementById("hint-word").value = ""; 
+  }, 2000); 
+}
+
+// --------------------------------------------------
+// ⑦ スパイマスターモード（答え透視）の切り替え
+// --------------------------------------------------
+function toggleSpymaster() {
+  const board = document.getElementById("board");
+  const btn = document.getElementById("spymaster-toggle-btn");
+  
+  if (board.classList.contains("spymaster-mode")) {
+    // モードOFF（答えを隠す）
+    board.classList.remove("spymaster-mode");
+    btn.innerText = "👁️ 答えを見る";
+    btn.classList.add("hidden-mode");
+  } else {
+    // モードON（答えを表示する）
+    board.classList.add("spymaster-mode");
+    btn.innerText = "👁️ 答えを隠す";
+    btn.classList.remove("hidden-mode");
+  }
+}
+
+// 起動時はスタート画面を表示し、スタートボタンで盤面を描画
