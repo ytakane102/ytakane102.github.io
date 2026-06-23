@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+pydantic
+openai
+# もし他にベクトル計算などで使っているライブラリがあればここに追記します
