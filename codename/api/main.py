@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from api import vector  # ◀◀ 修正：フォルダ内のvector.pyを正しく読み込む
+import vector  # ◀◀ 修正：フォルダ内のvector.pyを正しく読み込む
 
 app = FastAPI()
 
