@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import vector  # ◀◀ 修正：フォルダ内のvector.pyを正しく読み込む
+
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
