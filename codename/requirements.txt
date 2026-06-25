@@ -4,3 +4,4 @@ pydantic
 openai
 numpy
 scikit-learn
+python-dotenv
