@@ -3,7 +3,6 @@ const main = document.querySelector('#main');
 const viewer = document.querySelector('#viewer');
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 let events = [], wallCleanup = () => {}, coverCleanup = () => {}, activeEvent, activeIndex = 0, lastFocus, galleryShown = 0;
-const count = n => n.toLocaleString('ja-JP');
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const src = (p, size = 'thumb') => `./assets/photos/${p.id}-${size}.webp`;
 const photoImage = (p, alt, lazy = true) => `<img src="${src(p)}" alt="${esc(alt)}" width="${p.width}" height="${p.height}" ${lazy ? 'loading="lazy"' : ''} decoding="async">`;
@@ -14,15 +13,14 @@ function shuffled(items) {
 }
 const cover = e => e.photos[Math.floor(Math.random()*e.photos.length)];
 const arrow = '<span class="round-arrow" aria-hidden="true">↗</span>';
-const total = list => list.reduce((n,e) => n + e.photos.length,0);
 function breadcrumb(year, event) { return `<nav class="breadcrumbs" aria-label="パンくず"><a href="#/">トップ</a><span>/</span>${event ? `<a href="#/year/${year}">${year}</a><span>/</span><span>${esc(event.name)}</span>` : `<span>${year}</span>`}</nav>`; }
 function home() {
  document.title = '編集局アルバム';
- main.innerHTML = `<section class="hero" aria-label="写真一覧"><div class="photo-wall" aria-hidden="true"></div><div class="hero-note"><h1>編集局アルバム</h1><a class="round-link" href="#years">年度を選択 <span class="round-arrow" aria-hidden="true">↓</span></a></div><button class="motion-control" id="motion-toggle" aria-pressed="${reducedMotion.matches}"></button></section><section class="section-wrap" id="years"><div class="section-heading"><h2>年度</h2></div><div class="year-list">${[2026,2025,2024].map(y => {
+ main.innerHTML = `<section class="hero" aria-label="写真一覧"><div class="photo-wall" aria-hidden="true"></div><div class="hero-note"><h1>編集局アルバム</h1></div></section><section class="section-wrap" id="years"><div class="section-heading"><h2>年度</h2></div><div class="year-list">${[2026,2025,2024].map(y => {
  const list = events.filter(e => e.year === y);
  if (!list.length) return `<article class="year-card pending"><div class="year-top"><span class="year-number">${y}</span></div><div class="year-empty"><span>cooming soon</span></div></article>`;
  const e = list.find(e => e.name === '海ドライブ') ?? list[0];
- return `<a class="year-card" href="#/year/${y}"><div class="year-top"><span class="year-number">${y}</span><span class="year-status"><i class="status-dot"></i>公開中</span></div><div class="year-cover" data-cover-year="${y}">${photoImage(cover(e),`${y}年の写真`)}</div><div class="year-details"><span>${list.length}イベント &nbsp; / &nbsp; ${count(total(list))}枚</span><span aria-hidden="true">↗</span></div></a>`;
+ return `<a class="year-card" href="#/year/${y}"><div class="year-top"><span class="year-number">${y}</span></div><div class="year-cover" data-cover-year="${y}">${photoImage(cover(e),`${y}年の写真`)}</div><div class="year-details"><span>${list.length}イベント</span><span aria-hidden="true">↗</span></div></a>`;
  }).join('')}</div></section>`;
  startWall();
 }
@@ -31,9 +29,6 @@ function startWall(userPaused = reducedMotion.matches) {
  const all = shuffled(events.flatMap(e=>e.photos));
  if(!all.length) return;
  let paused = userPaused, visible = true, raf, last = 0, resizeTimer;
- const button = document.querySelector('#motion-toggle');
- const updateButton = () => {button.innerHTML = paused ? '<span aria-hidden="true">▷</span> 再生する' : '<span aria-hidden="true">Ⅱ</span> 動きを止める';button.setAttribute('aria-pressed',String(paused));};
- updateButton(); button.onclick = () => { paused = !paused;updateButton(); };
  const rows = Array.from({length:5}, (_,r) => {
   const row = document.createElement('div');row.className = 'film-row';
   const track = document.createElement('div');track.className = 'film-track'; row.append(track);wall.append(row);
@@ -58,7 +53,7 @@ function startWall(userPaused = reducedMotion.matches) {
   raf=requestAnimationFrame(frame);
  };
  raf=requestAnimationFrame(frame);
- const onMotion=e=>{paused=e.matches;updateButton();};reducedMotion.addEventListener('change',onMotion);
+ const onMotion=e=>{paused=e.matches;};reducedMotion.addEventListener('change',onMotion);
  const onResize=()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{wallCleanup();wall.replaceChildren();startWall(paused);},150);};
  window.addEventListener('resize',onResize);
  wallCleanup=()=>{cancelAnimationFrame(raf);clearTimeout(resizeTimer);observer.disconnect();window.removeEventListener('resize',onResize);reducedMotion.removeEventListener('change',onMotion);};
@@ -111,13 +106,13 @@ function startCoverFades() {
 function yearPage(year) {
  const list=events.filter(e=>e.year===year);
  document.title=`${year}年のアルバム | 編集局アルバム`;
- if(!list.length){main.innerHTML=`<section class="inner-page">${breadcrumb(year)}<div class="empty-page"><h1>${year}</h1><p>cooming soon</p><a class="back-link" href="#years">← 年度一覧へ</a></div></section>`;return;}
- main.innerHTML=`<section class="inner-page">${breadcrumb(year)}<div class="page-heading"><div><h1>${year}</h1></div><p>${list.length}イベント / ${count(total(list))}枚</p></div><div class="event-grid">${list.map((e,i)=>`<a class="event-card" href="#/event/${e.id}"><div class="event-cover" data-cover-event="${e.id}">${photoImage(cover(e),e.name)}</div><div class="event-meta"><div><h2>${esc(e.name)}</h2><p>${count(e.photos.length)}枚</p></div>${arrow}</div></a>`).join('')}</div><a class="back-link" href="#years">← 年度一覧へ</a></section>`;
+ if(!list.length){main.innerHTML=`<section class="inner-page">${breadcrumb(year)}<div class="empty-page"><h1>${year}</h1><p>cooming soon</p><a class="back-link" href="#/">← トップへ</a></div></section>`;return;}
+ main.innerHTML=`<section class="inner-page">${breadcrumb(year)}<div class="page-heading"><div><h1>${year}</h1></div><p>${list.length}イベント</p></div><div class="event-grid">${list.map((e,i)=>`<a class="event-card" href="#/event/${e.id}"><div class="event-cover" data-cover-event="${e.id}">${photoImage(cover(e),e.name)}</div><div class="event-meta"><div><h2>${esc(e.name)}</h2></div>${arrow}</div></a>`).join('')}</div><a class="back-link" href="#/">← トップへ</a></section>`;
 }
 function eventPage(event) {
  activeEvent={...event,photos:shuffled(event.photos)};galleryShown=0;
  document.title=`${event.name} · ${event.year} | 編集局アルバム`;
- main.innerHTML=`<section class="inner-page">${breadcrumb(event.year,event)}<div class="page-heading event-heading"><div><div class="eyebrow">${event.year}</div><h1>${esc(event.name)}</h1></div><p>${count(event.photos.length)}枚</p></div><div class="gallery-tools"><span>写真をタップして拡大</span><a href="#/year/${event.year}">イベント一覧 ↗</a></div><div class="gallery" id="gallery"></div><div class="more-wrap"><button id="load-more" class="more-button">もっと見る ＋</button><p id="gallery-progress" aria-live="polite"></p></div><a class="back-link" href="#/year/${event.year}">← ${event.year}年のイベントへ</a></section>`;
+ main.innerHTML=`<section class="inner-page">${breadcrumb(event.year,event)}<div class="page-heading event-heading"><div><div class="eyebrow">${event.year}</div><h1>${esc(event.name)}</h1></div></div><div class="gallery-tools"><span>写真をタップして拡大</span><a href="#/year/${event.year}">イベント一覧 ↗</a></div><div class="gallery" id="gallery"></div><div class="more-wrap"><button id="load-more" class="more-button">もっと見る ＋</button></div><a class="back-link" href="#/year/${event.year}">← ${event.year}年のイベントへ</a></section>`;
  document.querySelector('#load-more').onclick=appendPhotos;
  document.querySelector('#gallery').onclick=e=>{const b=e.target.closest('[data-photo]');if(b)openViewer(activeEvent,Number(b.dataset.photo));};
  appendPhotos();
@@ -126,7 +121,6 @@ function appendPhotos(){
  const end=Math.min(galleryShown+60,activeEvent.photos.length);
  document.querySelector('#gallery').insertAdjacentHTML('beforeend',activeEvent.photos.slice(galleryShown,end).map((p,i)=>`<button class="photo-button" data-photo="${galleryShown+i}" aria-label="${esc(activeEvent.name)}の写真 ${galleryShown+i+1} を拡大">${photoImage(p,`${activeEvent.name} ${galleryShown+i+1}`)}</button>`).join(''));
  galleryShown=end;
- document.querySelector('#gallery-progress').textContent=`${count(galleryShown)} / ${count(activeEvent.photos.length)}枚`;
  document.querySelector('#load-more').hidden=end===activeEvent.photos.length;
 }
 function openViewer(event,index){activeEvent=event;activeIndex=index;lastFocus=document.activeElement;viewer.showModal();showPhoto();document.querySelector('#close-viewer').focus();}
@@ -134,7 +128,6 @@ function showPhoto(){
  const p=activeEvent.photos[activeIndex], img=document.querySelector('#viewer-image');
  img.src=src(p,'full');img.alt=`${activeEvent.year}年 ${activeEvent.name}の写真 ${activeIndex+1}`;
  document.querySelector('#viewer-title').textContent=`${activeEvent.year} / ${activeEvent.name}`;
- document.querySelector('#viewer-count').textContent=`${activeIndex+1} / ${activeEvent.photos.length}`;
  const a=document.querySelector('#download');a.href=src(p,'full');a.download=`${activeEvent.year}-${activeEvent.name}-${String(activeIndex+1).padStart(3,'0')}.webp`;
 }
 function movePhoto(direction){activeIndex=(activeIndex+direction+activeEvent.photos.length)%activeEvent.photos.length;showPhoto();}
