@@ -2,16 +2,14 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#f6f5ef"><meta name="description" content="編集局の写真を年度・イベント別に閲覧できるアルバムです。">
+<meta name="theme-color" content="#f5f0fb"><meta name="description" content="編集局の写真を年度・イベント別に閲覧できるアルバムです。">
 <title>編集局アルバム</title>
 <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="./style.css">
-<script src="./app.js" defer></script>
+<link rel="stylesheet" href="./style.css?v=purple-fade-1">
+<script src="./app.js?v=purple-fade-1" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">コンテンツへ移動</a>
-<header class="site-header"><a class="brand" href="#/" aria-label="編集局アルバム トップ"><span>編集局アルバム</span></a><a class="header-link" href="#years">年度から探す <span aria-hidden="true">↗</span></a></header>
 <main id="main"><div class="loading">アルバムを開いています…</div></main>
-<footer class="site-footer"><a href="#/">編集局アルバム</a><span>2024 — 2026</span></footer>
 <dialog id="viewer" aria-label="写真の拡大表示"><div class="viewer-top"><div id="viewer-title"></div><button class="icon-button" id="close-viewer" aria-label="写真を閉じる">✕</button></div><button class="viewer-arrow previous" id="previous" aria-label="前の写真">←</button><figure><img id="viewer-image" alt=""><figcaption id="viewer-count" aria-live="polite"></figcaption></figure><button class="viewer-arrow next" id="next" aria-label="次の写真">→</button><a id="download" download>写真を保存 <span aria-hidden="true">↓</span></a></dialog>
 </body></html>
