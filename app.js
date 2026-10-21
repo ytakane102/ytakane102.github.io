@@ -11,6 +11,8 @@ function shuffled(items) {
  for(let i=result.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[result[i],result[j]]=[result[j],result[i]];}
  return result;
 }
+const eventOrder = ['装飾・日常','夏合宿','海ドライブ','新歓合宿','運動会'];
+const eventRank = event => {const rank=eventOrder.indexOf(event.name);return rank<0?eventOrder.length:rank;};
 const cover = e => e.photos[Math.floor(Math.random()*e.photos.length)];
 const arrow = '<span class="round-arrow" aria-hidden="true">↗</span>';
 function breadcrumb(year, event) { return `<nav class="breadcrumbs" aria-label="パンくず"><a href="#/">トップ</a><span>/</span>${event ? `<a href="#/year/${year}">${year}</a><span>/</span><span>${esc(event.name)}</span>` : `<span>${year}</span>`}</nav>`; }
@@ -37,9 +39,10 @@ function startWall(userPaused = reducedMotion.matches) {
   let cursor = 0;
   const makeTile = () => { const tile=document.createElement('div');tile.className='film-tile';const img=document.createElement('img');img.alt='';img.decoding='async';img.draggable=false;tile.append(img);return tile; };
   const assign = tile => { const photo=rowPhotos[cursor++ % rowPhotos.length] ?? all[0];tile.firstChild.src=src(photo); };
-  for(let i=0;i<tileCount;i++){const tile=makeTile();assign(tile);track.append(tile);}
+  const appendTile=()=>{const tile=makeTile();assign(tile);track.append(tile);};
+  for(let i=0;i<tileCount;i++) appendTile();
   const step = track.firstChild.getBoundingClientRect().width + parseFloat(getComputedStyle(track).gap);
-  return {track,offset:0,direction:r%2?1:-1,speed:12+r*2,assign,step};
+  return {track,offset:0,direction:r%2?1:-1,speed:12+r*2,assign,step,appendTile};
  });
  const observer = new IntersectionObserver(entries => {visible=entries[0].isIntersecting;});observer.observe(wall);
  const frame = now => {
@@ -54,7 +57,23 @@ function startWall(userPaused = reducedMotion.matches) {
  };
  raf=requestAnimationFrame(frame);
  const onMotion=e=>{paused=e.matches;};reducedMotion.addEventListener('change',onMotion);
- const onResize=()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{wallCleanup();wall.replaceChildren();startWall(paused);},150);};
+ let layoutWidth=window.innerWidth;
+ const onResize=()=>{
+  // Mobile browser chrome changes viewport height while scrolling.
+  // Retain the same rows, photo queue and progress during every resize.
+  if(window.innerWidth===layoutWidth) return;
+  clearTimeout(resizeTimer);
+  resizeTimer=setTimeout(()=>{
+   layoutWidth=window.innerWidth;
+   const tileCount=Math.ceil(layoutWidth/200)+3;
+   for(const row of rows){
+    while(row.track.children.length<tileCount) row.appendTile();
+    const step=row.track.firstChild.getBoundingClientRect().width+parseFloat(getComputedStyle(row.track).gap);
+    row.offset=row.offset/row.step*step;
+    row.step=step;
+   }
+  },150);
+ };
  window.addEventListener('resize',onResize);
  wallCleanup=()=>{cancelAnimationFrame(raf);clearTimeout(resizeTimer);observer.disconnect();window.removeEventListener('resize',onResize);reducedMotion.removeEventListener('change',onMotion);};
 }
@@ -104,7 +123,7 @@ function startCoverFades() {
  };
 }
 function yearPage(year) {
- const list=events.filter(e=>e.year===year);
+ const list=events.filter(e=>e.year===year).sort((a,b)=>eventRank(a)-eventRank(b));
  document.title=`${year}年のアルバム | 編集局アルバム`;
  if(!list.length){main.innerHTML=`<section class="inner-page">${breadcrumb(year)}<div class="empty-page"><h1>${year}</h1><p>cooming soon</p><a class="back-link" href="#/">← トップへ</a></div></section>`;return;}
  main.innerHTML=`<section class="inner-page">${breadcrumb(year)}<div class="page-heading"><div><h1>${year}</h1></div><p>${list.length}イベント</p></div><div class="event-grid">${list.map((e,i)=>`<a class="event-card" href="#/event/${e.id}"><div class="event-cover" data-cover-event="${e.id}">${photoImage(cover(e),e.name)}</div><div class="event-meta"><div><h2>${esc(e.name)}</h2></div>${arrow}</div></a>`).join('')}</div><a class="back-link" href="#/">← トップへ</a></section>`;

@@ -17,3 +17,23 @@
 @media(max-width:600px){.hero{height:100svh;min-height:700px}.photo-wall,.film-track{gap:7px}.film-tile{width:220px}.inner-page{padding-top:26px}}
 
 .hero-note h1{margin-bottom:0}
+
+/* Center headings, labels and incomplete rows of album cards. */
+.section-heading,.year-top,.breadcrumbs{justify-content:center}
+.year-card{text-align:center}
+.year-details{justify-content:center;gap:16px}
+.page-heading{flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px}
+.event-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
+.event-card{grid-column:auto / span 2}
+.event-card:nth-last-child(2):nth-child(3n+1){grid-column:2 / span 2}
+.event-card:last-child:nth-child(3n+1){grid-column:3 / span 2}
+.event-meta{position:relative;justify-content:center;text-align:center;padding:0 38px;height:58px}
+.event-meta h2{margin:0}
+.event-meta .round-arrow{position:absolute;right:0;top:50%;transform:translateY(-50%)}
+.inner-page>.back-link{display:flex;width:fit-content;margin-left:auto;margin-right:auto}
+@media(max-width:900px){
+ .event-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .event-card:nth-last-child(2):nth-child(3n+1),.event-card:last-child:nth-child(3n+1){grid-column:auto / span 2}
+ .event-card:last-child:nth-child(odd){grid-column:2 / span 2}
+}
+@media(max-width:600px){.page-heading{align-items:center}.event-meta{height:50px;padding:0 27px}}
