@@ -3,10 +3,15 @@
 /* Keep the album title and navigation free of promotional copy. */
 .hero-note{width:420px;padding:32px 24px}.hero-note h1{font-size:34px;letter-spacing:.04em;line-height:1.5;margin:0 0 24px}@media(max-width:600px){.hero-note{width:284px;padding:28px 18px}.hero-note h1{font-size:27px;margin-bottom:22px}}
 
-/* A stationary mosaic with independently crossfading photographs. */
-.photo-wall{position:absolute;inset:0;display:grid;grid-template-columns:repeat(var(--wall-columns,8),minmax(0,1fr));grid-template-rows:repeat(5,minmax(0,1fr));gap:8px;overflow:hidden}
-.wall-tile{position:relative;min-width:0;min-height:0;overflow:hidden;background:#e8ddf2}
-.wall-tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+/* The large hero keeps its alternating horizontal photo strips. */
+.hero{height:100svh;min-height:760px}
+.photo-wall{position:absolute;inset:0 -10px;display:flex;flex-direction:column;gap:9px;overflow:hidden}
+.film-row{flex:1;min-height:0;position:relative;overflow:hidden}
+.film-track{position:absolute;inset:0 auto 0 0;display:flex;gap:9px;will-change:transform}
+.film-tile{width:clamp(240px,20vw,320px);height:100%;flex:none;background:#e8ddf2;overflow:hidden}
+.film-tile img{width:100%;height:100%;object-fit:cover}
+.year-cover,.event-cover{position:relative}
+.year-cover img,.event-cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .inner-page{padding-top:45px}
 .year-empty span{font-family:Georgia,serif;letter-spacing:.06em}
-@media(max-width:600px){.photo-wall{gap:6px}.inner-page{padding-top:26px}}
+@media(max-width:600px){.hero{height:100svh;min-height:700px}.photo-wall,.film-track{gap:7px}.film-tile{width:220px}.inner-page{padding-top:26px}}

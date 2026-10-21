@@ -2,7 +2,7 @@
 const main = document.querySelector('#main');
 const viewer = document.querySelector('#viewer');
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-let events = [], wallCleanup = () => {}, activeEvent, activeIndex = 0, lastFocus, galleryShown = 0;
+let events = [], wallCleanup = () => {}, coverCleanup = () => {}, activeEvent, activeIndex = 0, lastFocus, galleryShown = 0;
 const count = n => n.toLocaleString('ja-JP');
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const src = (p, size = 'thumb') => `./assets/photos/${p.id}-${size}.webp`;
@@ -22,91 +22,97 @@ function home() {
  const list = events.filter(e => e.year === y);
  if (!list.length) return `<article class="year-card pending"><div class="year-top"><span class="year-number">${y}</span></div><div class="year-empty"><span>cooming soon</span></div></article>`;
  const e = list.find(e => e.name === '海ドライブ') ?? list[0];
- return `<a class="year-card" href="#/year/${y}"><div class="year-top"><span class="year-number">${y}</span><span class="year-status"><i class="status-dot"></i>公開中</span></div><div class="year-cover">${photoImage(cover(e),`${y}年の写真`)}</div><div class="year-details"><span>${list.length}イベント &nbsp; / &nbsp; ${count(total(list))}枚</span><span aria-hidden="true">↗</span></div></a>`;
+ return `<a class="year-card" href="#/year/${y}"><div class="year-top"><span class="year-number">${y}</span><span class="year-status"><i class="status-dot"></i>公開中</span></div><div class="year-cover" data-cover-year="${y}">${photoImage(cover(e),`${y}年の写真`)}</div><div class="year-details"><span>${list.length}イベント &nbsp; / &nbsp; ${count(total(list))}枚</span><span aria-hidden="true">↗</span></div></a>`;
  }).join('')}</div></section>`;
  startWall();
 }
 function startWall(userPaused = reducedMotion.matches) {
  const wall = document.querySelector('.photo-wall');
- const photos = events.flatMap(e=>e.photos);
- if(!photos.length) return;
- let queue = shuffled(photos), cursor = 0;
- const nextPhoto = () => {
-  if(cursor===queue.length){queue=shuffled(photos);cursor=0;}
-  return queue[cursor++];
- };
- let paused = userPaused, visible = true, disposed = false, resizeTimer;
- const animations = new Set();
- const tiles = [];
+ const all = shuffled(events.flatMap(e=>e.photos));
+ if(!all.length) return;
+ let paused = userPaused, visible = true, raf, last = 0, resizeTimer;
  const button = document.querySelector('#motion-toggle');
- const canPlay = () => !disposed && !paused && visible && !document.hidden;
- const syncPlayback = () => {
-  for(const animation of animations) canPlay() ? animation.play() : animation.pause();
-  button.innerHTML = paused ? '<span aria-hidden="true">▷</span> 再生する' : '<span aria-hidden="true">Ⅱ</span> 動きを止める';
-  button.setAttribute('aria-pressed',String(paused));
+ const updateButton = () => {button.innerHTML = paused ? '<span aria-hidden="true">▷</span> 再生する' : '<span aria-hidden="true">Ⅱ</span> 動きを止める';button.setAttribute('aria-pressed',String(paused));};
+ updateButton(); button.onclick = () => { paused = !paused;updateButton(); };
+ const rows = Array.from({length:5}, (_,r) => {
+  const row = document.createElement('div');row.className = 'film-row';
+  const track = document.createElement('div');track.className = 'film-track'; row.append(track);wall.append(row);
+  const tileCount = Math.ceil(window.innerWidth / 200) + 3;
+  const rowPhotos = all.filter((_,i) => i % 5 === r);
+  let cursor = 0;
+  const makeTile = () => { const tile=document.createElement('div');tile.className='film-tile';const img=document.createElement('img');img.alt='';img.decoding='async';img.draggable=false;tile.append(img);return tile; };
+  const assign = tile => { const photo=rowPhotos[cursor++ % rowPhotos.length] ?? all[0];tile.firstChild.src=src(photo); };
+  for(let i=0;i<tileCount;i++){const tile=makeTile();assign(tile);track.append(tile);}
+  const step = track.firstChild.getBoundingClientRect().width + parseFloat(getComputedStyle(track).gap);
+  return {track,offset:0,direction:r%2?1:-1,speed:12+r*2,assign,step};
+ });
+ const observer = new IntersectionObserver(entries => {visible=entries[0].isIntersecting;});observer.observe(wall);
+ const frame = now => {
+  const dt=Math.min((now-last)/1000 || 0,.05);last=now;
+  if(!paused && visible && !document.hidden){
+   for(const row of rows){const step=row.step; row.offset += dt*row.speed;
+    if(row.offset >= step){row.offset-=step;if(row.direction<0){const tile=row.track.firstChild;row.track.append(tile);row.assign(tile);}else{const tile=row.track.lastChild;row.track.prepend(tile);row.assign(tile);}}
+    row.track.style.transform=`translate3d(${row.direction<0 ? -row.offset : row.offset-step}px,0,0)`;
+   }
+  }
+  raf=requestAnimationFrame(frame);
  };
- button.onclick=()=>{paused=!paused;syncPlayback();};
- const columnsForWidth = () => Math.max(3,Math.ceil(window.innerWidth/(window.innerWidth<=600?150:190)));
- const columns = columnsForWidth();
- wall.style.setProperty('--wall-columns',columns);
- const makeImage = photo => {
-  const img=new Image();img.alt='';img.decoding='async';img.draggable=false;img.src=src(photo);return img;
- };
- for(let i=0;i<columns*5;i++){
-  const element=document.createElement('div');element.className='wall-tile';
-  const front=makeImage(nextPhoto());element.append(front);wall.append(element);
-  tiles.push({element,front,busy:false});
- }
- const changePhoto = async tile => {
-  tile.busy=true;
-  const incoming=makeImage(nextPhoto());
-  try {
-   await incoming.decode();
-   if(!canPlay()) return;
-   tile.element.append(incoming);
-   const animation=incoming.animate([{opacity:0},{opacity:1}],{duration:1800,easing:'ease-in-out',fill:'forwards'});
-   animations.add(animation);
-   try { await animation.finished; }
-   finally { animations.delete(animation); }
-   if(disposed) return;
-   tile.front.remove();tile.front=incoming;
-   animation.cancel();
-  } catch {
-   incoming.remove(); // Keep the current photo when loading is interrupted.
-  } finally { tile.busy=false; }
- };
- const timer=setInterval(()=>{
-  if(!canPlay()) return;
-  shuffled(tiles.filter(tile=>!tile.busy)).slice(0,Math.max(2,Math.ceil(tiles.length/15))).forEach(changePhoto);
- },1000);
- const observer=new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;syncPlayback();});
- observer.observe(wall);
- const onMotion=e=>{paused=e.matches;syncPlayback();};
- const onVisibility=()=>syncPlayback();
- const onResize=()=>{
-  clearTimeout(resizeTimer);
-  resizeTimer=setTimeout(()=>{
-   if(columnsForWidth()!==columns){wallCleanup();wall.replaceChildren();startWall(paused);}
-  },150);
- };
- reducedMotion.addEventListener('change',onMotion);
- document.addEventListener('visibilitychange',onVisibility);
+ raf=requestAnimationFrame(frame);
+ const onMotion=e=>{paused=e.matches;updateButton();};reducedMotion.addEventListener('change',onMotion);
+ const onResize=()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{wallCleanup();wall.replaceChildren();startWall(paused);},150);};
  window.addEventListener('resize',onResize);
- syncPlayback();
- wallCleanup=()=>{
-  disposed=true;clearInterval(timer);clearTimeout(resizeTimer);observer.disconnect();
-  for(const animation of animations) animation.cancel();
-  animations.clear();
-  reducedMotion.removeEventListener('change',onMotion);
-  document.removeEventListener('visibilitychange',onVisibility);
-  window.removeEventListener('resize',onResize);
+ wallCleanup=()=>{cancelAnimationFrame(raf);clearTimeout(resizeTimer);observer.disconnect();window.removeEventListener('resize',onResize);reducedMotion.removeEventListener('change',onMotion);};
+}
+function startCoverFades() {
+ const cards=[...document.querySelectorAll('[data-cover-year],[data-cover-event]')].map((element,index)=>({
+  element, front:element.querySelector('img'), visible:false, busy:false,
+  lastChange:performance.now()+index*450,
+  photos:events.filter(e=>element.dataset.coverEvent ? e.id===element.dataset.coverEvent : e.year===Number(element.dataset.coverYear)).flatMap(e=>e.photos)
+ }));
+ if(!cards.length) return;
+ let disposed=false;
+ const animations=new Map();
+ const canPlay=card=>!disposed && card.visible && !document.hidden && !reducedMotion.matches;
+ const sync=()=>{for(const [animation,card] of animations) canPlay(card)?animation.play():animation.pause();};
+ const observer=new IntersectionObserver(entries=>{
+  for(const entry of entries){const card=cards.find(card=>card.element===entry.target);card.visible=entry.isIntersecting;}
+  sync();
+ });
+ cards.forEach(card=>observer.observe(card.element));
+ async function change(card){
+  const choices=card.photos.filter(photo=>!card.front.src.includes(photo.id));
+  if(!choices.length) return;
+  card.busy=true;card.lastChange=performance.now();
+  const image=new Image();image.alt=card.front.alt;image.decoding='async';
+  image.src=src(choices[Math.floor(Math.random()*choices.length)]);
+  try{
+   await image.decode();
+   if(!canPlay(card)) return;
+   card.element.append(image);
+   const animation=image.animate([{opacity:0},{opacity:1}],{duration:1400,easing:'ease-in-out',fill:'forwards'});
+   animations.set(animation,card);
+   try{await animation.finished;}finally{animations.delete(animation);}
+   if(disposed) return;
+   card.front.remove();card.front=image;animation.cancel();
+  }catch{image.remove();}finally{card.busy=false;}
+ }
+ const timer=setInterval(()=>{
+  const now=performance.now();
+  cards.filter(card=>canPlay(card)&&!card.busy&&now-card.lastChange>=4200).forEach(change);
+ },300);
+ document.addEventListener('visibilitychange',sync);
+ reducedMotion.addEventListener('change',sync);
+ coverCleanup=()=>{
+  disposed=true;clearInterval(timer);observer.disconnect();
+  animations.forEach((_,animation)=>animation.cancel());animations.clear();
+  document.removeEventListener('visibilitychange',sync);reducedMotion.removeEventListener('change',sync);
  };
 }
 function yearPage(year) {
  const list=events.filter(e=>e.year===year);
  document.title=`${year}年のアルバム | 編集局アルバム`;
  if(!list.length){main.innerHTML=`<section class="inner-page">${breadcrumb(year)}<div class="empty-page"><h1>${year}</h1><p>cooming soon</p><a class="back-link" href="#years">← 年度一覧へ</a></div></section>`;return;}
- main.innerHTML=`<section class="inner-page">${breadcrumb(year)}<div class="page-heading"><div><h1>${year}</h1></div><p>${list.length}イベント / ${count(total(list))}枚</p></div><div class="event-grid">${list.map((e,i)=>`<a class="event-card" href="#/event/${e.id}"><div class="event-cover">${photoImage(cover(e),e.name)}</div><div class="event-meta"><div><h2>${esc(e.name)}</h2><p>${count(e.photos.length)}枚</p></div>${arrow}</div></a>`).join('')}</div><a class="back-link" href="#years">← 年度一覧へ</a></section>`;
+ main.innerHTML=`<section class="inner-page">${breadcrumb(year)}<div class="page-heading"><div><h1>${year}</h1></div><p>${list.length}イベント / ${count(total(list))}枚</p></div><div class="event-grid">${list.map((e,i)=>`<a class="event-card" href="#/event/${e.id}"><div class="event-cover" data-cover-event="${e.id}">${photoImage(cover(e),e.name)}</div><div class="event-meta"><div><h2>${esc(e.name)}</h2><p>${count(e.photos.length)}枚</p></div>${arrow}</div></a>`).join('')}</div><a class="back-link" href="#years">← 年度一覧へ</a></section>`;
 }
 function eventPage(event) {
  activeEvent={...event,photos:shuffled(event.photos)};galleryShown=0;
@@ -143,10 +149,12 @@ viewer.addEventListener('touchstart',e=>{if(e.touches.length===1)touchStart={x:e
 viewer.addEventListener('touchend',e=>{if(!touchStart)return;const dx=e.changedTouches[0].clientX-touchStart.x,dy=e.changedTouches[0].clientY-touchStart.y;if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5)movePhoto(dx<0?1:-1);touchStart=null;},{passive:true});
 function route(){
  wallCleanup();wallCleanup=()=>{};
+ coverCleanup();coverCleanup=()=>{};
  if(viewer.open)closeViewer();
  const hash=location.hash;
  const year=hash.match(/^#\/year\/(202[456])$/), event=hash.match(/^#\/event\/([a-f0-9]+)$/);
  if(year)yearPage(Number(year[1]));else if(event){const e=events.find(e=>e.id===event[1]);if(e)eventPage(e);else main.innerHTML='<section class="empty-page"><h1>404</h1><p>アルバムが見つかりませんでした。</p><a class="back-link" href="#/">トップへ戻る</a></section>';}else home();
+ startCoverFades();
  if(hash==='#years')requestAnimationFrame(()=>document.querySelector('#years')?.scrollIntoView());else window.scrollTo(0,0);
 }
 window.addEventListener('hashchange',route);
