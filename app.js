@@ -22,13 +22,13 @@ function home() {
  const list = events.filter(e => e.year === y);
  if (!list.length) return `<article class="year-card pending"><div class="year-top"><span class="year-number">${y}</span></div><div class="year-empty"><span>cooming soon</span></div></article>`;
  const e = list.find(e => e.name === '海ドライブ') ?? list[0];
- return `<a class="year-card" href="#/year/${y}"><div class="year-top"><span class="year-number">${y}</span></div><div class="year-cover" data-cover-year="${y}">${photoImage(cover(e),`${y}年の写真`)}</div><div class="year-details"><span>${list.length}イベント</span><span aria-hidden="true">↗</span></div></a>`;
+ return `<a class="year-card" href="#/year/${y}"><div class="year-top"><span class="year-number">${y}</span></div><div class="year-cover" data-cover-year="${y}">${photoImage(cover(e),`${y}年の写真`)}</div><div class="year-details"><span aria-hidden="true">↗</span></div></a>`;
  }).join('')}</div></section>`;
  startWall();
 }
 function startWall(userPaused = reducedMotion.matches) {
  const wall = document.querySelector('.photo-wall');
- const all = shuffled(events.flatMap(e=>e.photos));
+ const all = shuffled(events.filter(e=>e.year===2026).flatMap(e=>e.photos));
  if(!all.length) return;
  let paused = userPaused, visible = true, raf, last = 0, resizeTimer;
  const rows = Array.from({length:5}, (_,r) => {
@@ -126,7 +126,7 @@ function yearPage(year) {
  const list=events.filter(e=>e.year===year).sort((a,b)=>eventRank(a)-eventRank(b));
  document.title=`${year}年のアルバム | 編集局アルバム`;
  if(!list.length){main.innerHTML=`<section class="inner-page">${breadcrumb(year)}<div class="empty-page"><h1>${year}</h1><p>cooming soon</p><a class="back-link" href="#/">← トップへ</a></div></section>`;return;}
- main.innerHTML=`<section class="inner-page">${breadcrumb(year)}<div class="page-heading"><div><h1>${year}</h1></div><p>${list.length}イベント</p></div><div class="event-grid">${list.map((e,i)=>`<a class="event-card" href="#/event/${e.id}"><div class="event-cover" data-cover-event="${e.id}">${photoImage(cover(e),e.name)}</div><div class="event-meta"><div><h2>${esc(e.name)}</h2></div>${arrow}</div></a>`).join('')}</div><a class="back-link" href="#/">← トップへ</a></section>`;
+ main.innerHTML=`<section class="inner-page">${breadcrumb(year)}<div class="page-heading"><div><h1>${year}</h1></div></div><div class="event-grid">${list.map((e,i)=>`<a class="event-card" href="#/event/${e.id}"><div class="event-cover" data-cover-event="${e.id}">${photoImage(cover(e),e.name)}</div><div class="event-meta"><div><h2>${esc(e.name)}</h2></div>${arrow}</div></a>`).join('')}</div><a class="back-link" href="#/">← トップへ</a></section>`;
 }
 function eventPage(event) {
  activeEvent={...event,photos:shuffled(event.photos)};galleryShown=0;
@@ -147,7 +147,6 @@ function showPhoto(){
  const p=activeEvent.photos[activeIndex], img=document.querySelector('#viewer-image');
  img.src=src(p,'full');img.alt=`${activeEvent.year}年 ${activeEvent.name}の写真 ${activeIndex+1}`;
  document.querySelector('#viewer-title').textContent=`${activeEvent.year} / ${activeEvent.name}`;
- const a=document.querySelector('#download');a.href=src(p,'full');a.download=`${activeEvent.year}-${activeEvent.name}-${String(activeIndex+1).padStart(3,'0')}.webp`;
 }
 function movePhoto(direction){activeIndex=(activeIndex+direction+activeEvent.photos.length)%activeEvent.photos.length;showPhoto();}
 function closeViewer(){viewer.close();lastFocus?.focus();}
