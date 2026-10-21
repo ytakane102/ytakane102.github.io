@@ -142,22 +142,100 @@ function appendPhotos(){
  galleryShown=end;
  document.querySelector('#load-more').hidden=end===activeEvent.photos.length;
 }
-function openViewer(event,index){activeEvent=event;activeIndex=index;lastFocus=document.activeElement;viewer.showModal();showPhoto();document.querySelector('#close-viewer').focus();}
+const viewerViewport=document.querySelector('.viewer-viewport');
+const viewerTrack=document.querySelector('.viewer-track');
+let viewerDrag=null, viewerAnimation=false, viewerTimer;
+const wrapPhoto=index=>(index+activeEvent.photos.length)%activeEvent.photos.length;
+function setViewerSlide(slide,index){
+ const image=slide.querySelector('img'),photo=activeEvent.photos[wrapPhoto(index)];
+ image.src=src(photo,'full');image.alt=`${activeEvent.year}年 ${activeEvent.name}の写真 ${wrapPhoto(index)+1}`;
+ image.decoding='async';
+}
+function positionViewer(offset=0){viewerTrack.style.transform=`translate3d(${-viewerViewport.clientWidth+offset}px,0,0)`;}
+function resetViewerMotion(){
+ clearTimeout(viewerTimer);viewerDrag=null;viewerAnimation=false;
+ viewerTrack.classList.remove('is-animating');positionViewer();
+}
+function openViewer(event,index){
+ activeEvent=event;activeIndex=index;lastFocus=document.activeElement;
+ viewer.showModal();showPhoto();document.querySelector('#close-viewer').focus();
+}
 function showPhoto(){
- const p=activeEvent.photos[activeIndex], img=document.querySelector('#viewer-image');
- img.src=src(p,'full');img.alt=`${activeEvent.year}年 ${activeEvent.name}の写真 ${activeIndex+1}`;
+ resetViewerMotion();
+ [...viewerTrack.children].forEach((slide,i)=>setViewerSlide(slide,activeIndex+i-1));
  document.querySelector('#viewer-title').textContent=`${activeEvent.year} / ${activeEvent.name}`;
 }
-function movePhoto(direction){activeIndex=(activeIndex+direction+activeEvent.photos.length)%activeEvent.photos.length;showPhoto();}
-function closeViewer(){viewer.close();lastFocus?.focus();}
-viewer.addEventListener('close',()=>{document.querySelector('#viewer-image').removeAttribute('src');lastFocus?.focus();});
+function slideViewer(direction){
+ if(!viewer.open||viewerAnimation)return;
+ viewerAnimation=true;
+ const finish=()=>{
+  viewerTrack.classList.remove('is-animating');
+  if(direction){
+   activeIndex=wrapPhoto(activeIndex+direction);
+   if(direction>0){viewerTrack.append(viewerTrack.firstElementChild);setViewerSlide(viewerTrack.lastElementChild,activeIndex+1);}
+   else{viewerTrack.prepend(viewerTrack.lastElementChild);setViewerSlide(viewerTrack.firstElementChild,activeIndex-1);}
+   viewerTrack.querySelector('[id="viewer-image"]')?.removeAttribute('id');
+   viewerTrack.children[1].querySelector('img').id='viewer-image';
+  }
+  positionViewer();viewerAnimation=false;
+ };
+ if(reducedMotion.matches){finish();return;}
+ // Commit the finger position before animating to the adjacent photograph.
+ void viewerTrack.offsetWidth;
+ viewerTrack.classList.add('is-animating');
+ positionViewer(-direction*viewerViewport.clientWidth);
+ viewerTimer=setTimeout(finish,230);
+}
+function movePhoto(direction){slideViewer(direction);}
+function closeViewer(){viewer.close();}
+viewer.addEventListener('close',()=>{
+ resetViewerMotion();viewerTrack.querySelectorAll('img').forEach(image=>image.removeAttribute('src'));lastFocus?.focus();
+});
 document.querySelector('#close-viewer').onclick=closeViewer;
 document.querySelector('#previous').onclick=()=>movePhoto(-1);
 document.querySelector('#next').onclick=()=>movePhoto(1);
-viewer.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'){e.preventDefault();movePhoto(-1);}if(e.key==='ArrowRight'){e.preventDefault();movePhoto(1);}});
-let touchStart;
-viewer.addEventListener('touchstart',e=>{if(e.touches.length===1)touchStart={x:e.touches[0].clientX,y:e.touches[0].clientY};else touchStart=null;},{passive:true});
-viewer.addEventListener('touchend',e=>{if(!touchStart)return;const dx=e.changedTouches[0].clientX-touchStart.x,dy=e.changedTouches[0].clientY-touchStart.y;if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5)movePhoto(dx<0?1:-1);touchStart=null;},{passive:true});
+viewer.addEventListener('keydown',e=>{
+ if(e.key==='ArrowLeft'){e.preventDefault();movePhoto(-1);}
+ if(e.key==='ArrowRight'){e.preventDefault();movePhoto(1);}
+});
+const viewerPointers=new Set();
+viewerViewport.addEventListener('pointerdown',e=>{
+ viewerPointers.add(e.pointerId);
+ if(viewerPointers.size>1){resetViewerMotion();return;}
+ if(viewerAnimation||e.button!==0||(window.visualViewport?.scale??1)>1.05)return;
+ viewerDrag={id:e.pointerId,x:e.clientX,y:e.clientY,lastX:e.clientX,time:performance.now(),velocity:0,offset:0,horizontal:false};
+});
+viewerViewport.addEventListener('pointermove',e=>{
+ const drag=viewerDrag;if(!drag||drag.id!==e.pointerId)return;
+ const dx=e.clientX-drag.x,dy=e.clientY-drag.y,now=performance.now();
+ if(!drag.horizontal){
+  if(Math.abs(dy)>10&&Math.abs(dy)>Math.abs(dx)){viewerDrag=null;return;}
+  if(Math.abs(dx)<8||Math.abs(dx)<Math.abs(dy)*1.2)return;
+  drag.horizontal=true;viewerViewport.setPointerCapture(e.pointerId);
+ }
+ drag.velocity=(e.clientX-drag.lastX)/Math.max(1,now-drag.time);
+ drag.lastX=e.clientX;drag.time=now;
+ drag.offset=Math.max(-viewerViewport.clientWidth,Math.min(viewerViewport.clientWidth,dx));
+ positionViewer(drag.offset);
+});
+function releaseViewerPointer(e,cancelled=false){
+ viewerPointers.delete(e.pointerId);
+ const drag=viewerDrag;if(!drag||drag.id!==e.pointerId)return;
+ viewerDrag=null;
+ if(!drag.horizontal)return;
+ const threshold=Math.max(24,Math.min(48,viewerViewport.clientWidth*.08));
+ const quickFlick=performance.now()-drag.time<100&&Math.abs(drag.velocity)>.35&&Math.abs(drag.offset)>12;
+ const direction=!cancelled&&(Math.abs(drag.offset)>=threshold||quickFlick)?(drag.offset<0?1:-1):0;
+ slideViewer(direction);
+}
+viewerViewport.addEventListener('pointerup',e=>releaseViewerPointer(e));
+viewerViewport.addEventListener('pointercancel',e=>releaseViewerPointer(e,true));
+viewerViewport.addEventListener('lostpointercapture',e=>{
+ if(e.target===viewerViewport&&!viewerViewport.hasPointerCapture(e.pointerId))releaseViewerPointer(e,true);
+});
+window.addEventListener('pointerup',e=>releaseViewerPointer(e));
+window.addEventListener('pointercancel',e=>releaseViewerPointer(e,true));
+window.addEventListener('resize',()=>{if(viewer.open)resetViewerMotion();});
 function route(){
  wallCleanup();wallCleanup=()=>{};
  coverCleanup();coverCleanup=()=>{};

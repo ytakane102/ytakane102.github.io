@@ -5,11 +5,11 @@
 <meta name="theme-color" content="#f5f0fb"><meta name="description" content="編集局の写真を年度・イベント別に閲覧できるアルバムです。">
 <title>編集局アルバム</title>
 <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="./style.css?v=hero-2026-no-save-5">
-<script src="./app.js?v=hero-2026-no-save-5" defer></script>
+<link rel="stylesheet" href="./style.css?v=swipe-viewer-6">
+<script src="./app.js?v=swipe-viewer-6" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">コンテンツへ移動</a>
 <main id="main"><div class="loading">アルバムを開いています…</div></main>
-<dialog id="viewer" aria-label="写真の拡大表示"><div class="viewer-top"><div id="viewer-title"></div><button class="icon-button" id="close-viewer" aria-label="写真を閉じる">✕</button></div><button class="viewer-arrow previous" id="previous" aria-label="前の写真">←</button><figure><img id="viewer-image" alt=""></figure><button class="viewer-arrow next" id="next" aria-label="次の写真">→</button></dialog>
+<dialog id="viewer" aria-label="写真の拡大表示"><div class="viewer-top"><div id="viewer-title"></div><button class="icon-button" id="close-viewer" aria-label="写真を閉じる">✕</button></div><button class="viewer-arrow previous" id="previous" aria-label="前の写真">←</button><figure class="viewer-viewport" aria-label="左右にスワイプして写真を切り替え"><div class="viewer-track"><div class="viewer-slide"><img alt="" draggable="false"></div><div class="viewer-slide"><img id="viewer-image" alt="" draggable="false"></div><div class="viewer-slide"><img alt="" draggable="false"></div></div></figure><div class="swipe-hint" aria-hidden="true">↔ <span>左右にスワイプ</span></div><button class="viewer-arrow next" id="next" aria-label="次の写真">→</button></dialog>
 </body></html>
