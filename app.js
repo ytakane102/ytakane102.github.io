@@ -2,7 +2,7 @@
 const main = document.querySelector('#main');
 const viewer = document.querySelector('#viewer');
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-let events = [], wallCleanup = () => {}, coverCleanup = () => {}, activeEvent, activeIndex = 0, lastFocus, galleryShown = 0;
+let events = [], wallCleanup = () => {}, coverCleanup = () => {}, galleryCleanup = () => {}, activeEvent, activeIndex = 0, lastFocus, galleryShown = 0;
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const src = (p, size = 'thumb') => `./assets/photos/${p.id}-${size}.webp`;
 const photoImage = (p, alt, lazy = true) => `<img src="${src(p)}" alt="${esc(alt)}" width="${p.width}" height="${p.height}" ${lazy ? 'loading="lazy"' : ''} decoding="async">`;
@@ -131,16 +131,44 @@ function yearPage(year) {
 function eventPage(event) {
  activeEvent={...event,photos:shuffled(event.photos)};galleryShown=0;
  document.title=`${event.name} · ${event.year} | 編集局アルバム`;
- main.innerHTML=`<section class="inner-page">${breadcrumb(event.year,event)}<div class="page-heading event-heading"><div><div class="eyebrow">${event.year}</div><h1>${esc(event.name)}</h1></div></div><div class="gallery-tools"><span>写真をタップして拡大</span><a href="#/year/${event.year}">イベント一覧 ↗</a></div><div class="gallery" id="gallery"></div><div class="more-wrap"><button id="load-more" class="more-button">もっと見る ＋</button></div><a class="back-link" href="#/year/${event.year}">← ${event.year}年のイベントへ</a></section>`;
+ main.innerHTML=`<section class="inner-page">${breadcrumb(event.year,event)}<div class="page-heading event-heading"><div><div class="eyebrow">${event.year}</div><h1>${esc(event.name)}</h1></div></div><div class="gallery-tools"><span>写真をタップして拡大</span><a href="#/year/${event.year}">イベント一覧 ↗</a></div><div class="gallery" id="gallery"></div><div class="more-wrap"><button id="load-more" class="more-button">もっと見る ＋</button><p id="gallery-end" class="gallery-end" role="status" hidden>すべての写真を表示しました。</p></div><a class="back-link" href="#/year/${event.year}">← ${event.year}年のイベントへ</a></section>`;
+ setupGallery();
  document.querySelector('#load-more').onclick=appendPhotos;
  document.querySelector('#gallery').onclick=e=>{const b=e.target.closest('[data-photo]');if(b)openViewer(activeEvent,Number(b.dataset.photo));};
  appendPhotos();
 }
+function photoButtonMarkup(photo,index){
+ return `<button class="photo-button" data-photo="${index}" aria-label="${esc(activeEvent.name)}の写真 ${index+1} を拡大">${photoImage(photo,`${activeEvent.name} ${index+1}`)}</button>`;
+}
+function addGalleryRange(start,end){
+ const columns=[...document.querySelector('#gallery').children];
+ const content=columns.map(()=>'');
+ for(let index=start;index<end;index++)content[index%columns.length]+=photoButtonMarkup(activeEvent.photos[index],index);
+ columns.forEach((column,index)=>column.insertAdjacentHTML('beforeend',content[index]));
+}
+function setupGallery(){
+ const gallery=document.querySelector('#gallery');
+ let columnCount=0;
+ function layout(){
+  const nextCount=Number(getComputedStyle(gallery).getPropertyValue('--gallery-columns'));
+  if(nextCount===columnCount)return;
+  columnCount=nextCount;
+  gallery.replaceChildren(...Array.from({length:columnCount},()=>{
+   const column=document.createElement('div');column.className='gallery-column';return column;
+  }));
+  addGalleryRange(0,galleryShown);
+ }
+ layout();
+ const observer=new ResizeObserver(layout);observer.observe(gallery);
+ galleryCleanup=()=>observer.disconnect();
+}
 function appendPhotos(){
  const end=Math.min(galleryShown+60,activeEvent.photos.length);
- document.querySelector('#gallery').insertAdjacentHTML('beforeend',activeEvent.photos.slice(galleryShown,end).map((p,i)=>`<button class="photo-button" data-photo="${galleryShown+i}" aria-label="${esc(activeEvent.name)}の写真 ${galleryShown+i+1} を拡大">${photoImage(p,`${activeEvent.name} ${galleryShown+i+1}`)}</button>`).join(''));
+ if(end>galleryShown)addGalleryRange(galleryShown,end);
  galleryShown=end;
- document.querySelector('#load-more').hidden=end===activeEvent.photos.length;
+ const complete=end===activeEvent.photos.length;
+ document.querySelector('#load-more').hidden=complete;
+ document.querySelector('#gallery-end').hidden=!complete;
 }
 const viewerViewport=document.querySelector('.viewer-viewport');
 const viewerTrack=document.querySelector('.viewer-track');
@@ -239,6 +267,7 @@ window.addEventListener('resize',()=>{if(viewer.open)resetViewerMotion();});
 function route(){
  wallCleanup();wallCleanup=()=>{};
  coverCleanup();coverCleanup=()=>{};
+ galleryCleanup();galleryCleanup=()=>{};
  if(viewer.open)closeViewer();
  const hash=location.hash;
  const year=hash.match(/^#\/year\/(202[456])$/), event=hash.match(/^#\/event\/([a-f0-9]+)$/);

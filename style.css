@@ -56,3 +56,13 @@ dialog figure.viewer-viewport{position:absolute;inset:76px 76px 60px;margin:0;wi
  .swipe-hint{position:absolute;bottom:calc(34px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;color:#dfd3ea;font-size:25px;white-space:nowrap;pointer-events:none}
  .swipe-hint span{font-size:11px;letter-spacing:.08em}
 }
+
+/* Append beneath fixed columns so loaded photographs never rebalance. */
+.gallery{--gallery-columns:4;--gallery-gap:12px;columns:initial;display:grid;grid-template-columns:repeat(var(--gallery-columns),minmax(0,1fr));gap:var(--gallery-gap);align-items:start}
+.gallery-column{display:flex;flex-direction:column;gap:var(--gallery-gap);min-width:0}
+.gallery .photo-button{margin:0;flex-shrink:0}
+.gallery-end{color:var(--muted);font-size:11px;letter-spacing:.04em}
+@media(max-width:900px){.gallery{--gallery-columns:3}}
+@media(max-width:600px){.gallery{--gallery-columns:2;--gallery-gap:8px}}
+
+.more-wrap{overflow-anchor:none}
