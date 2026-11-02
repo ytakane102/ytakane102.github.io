@@ -12,7 +12,7 @@ function shuffled(items) {
  return result;
 }
 const eventOrders = {
- 2026:['装飾・日常','夏合宿','海ドライブ','新歓合宿','運動会'],
+ 2026:['当日','前日準備','装飾・日常','夏合宿','海ドライブ','新歓合宿','運動会'],
  2025:['当日','装飾','前月祭','夏合宿','その他'],
  2024:['当日','装飾','前月祭','夏合宿','夏ドライブ','ディズニー','お別れ会','その他']
 };
@@ -291,4 +291,4 @@ function route(){
  if(hash==='#years')requestAnimationFrame(()=>document.querySelector('#years')?.scrollIntoView());else window.scrollTo(0,0);
 }
 window.addEventListener('hashchange',route);
-fetch('./assets/album.json?v=all-years-9').then(r=>{if(!r.ok)throw new Error('Album loading failed');return r.json();}).then(data=>{events=data.events;route();}).catch(()=>{main.innerHTML='<div class="loading">アルバムを読み込めませんでした。<br><br><button class="more-button" onclick="location.reload()">もう一度読み込む</button></div>';});
+fetch('./assets/album.json?v=2026-new-events-12').then(r=>{if(!r.ok)throw new Error('Album loading failed');return r.json();}).then(data=>{events=data.events;route();}).catch(()=>{main.innerHTML='<div class="loading">アルバムを読み込めませんでした。<br><br><button class="more-button" onclick="location.reload()">もう一度読み込む</button></div>';});
