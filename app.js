@@ -141,9 +141,22 @@ function photoButtonMarkup(photo,index){
  return `<button class="photo-button" data-photo="${index}" aria-label="${esc(activeEvent.name)}の写真 ${index+1} を拡大">${photoImage(photo,`${activeEvent.name} ${index+1}`)}</button>`;
 }
 function addGalleryRange(start,end){
- const columns=[...document.querySelector('#gallery').children];
+ const gallery=document.querySelector('#gallery');
+ const columns=[...gallery.children];
+ const gap=parseFloat(getComputedStyle(gallery).columnGap)||0;
+ const width=columns[0].getBoundingClientRect().width;
+ // Use metadata so lazy image loading cannot change column selection.
+ const heights=columns.map(column=>[...column.children].reduce((height,button)=>{
+  const photo=activeEvent.photos[Number(button.dataset.photo)];
+  return height+width*photo.height/photo.width+gap;
+ },0));
  const content=columns.map(()=>'');
- for(let index=start;index<end;index++)content[index%columns.length]+=photoButtonMarkup(activeEvent.photos[index],index);
+ for(let index=start;index<end;index++){
+  const photo=activeEvent.photos[index];
+  const column=heights.indexOf(Math.min(...heights));
+  content[column]+=photoButtonMarkup(photo,index);
+  heights[column]+=width*photo.height/photo.width+gap;
+ }
  columns.forEach((column,index)=>column.insertAdjacentHTML('beforeend',content[index]));
 }
 function setupGallery(){
