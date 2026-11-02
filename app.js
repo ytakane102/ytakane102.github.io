@@ -21,7 +21,6 @@ const cover = e => e.photos[Math.floor(Math.random()*e.photos.length)];
 const arrow = '<span class="round-arrow" aria-hidden="true">↗</span>';
 function breadcrumb(year, event) { return `<nav class="breadcrumbs" aria-label="パンくず"><a href="#/">トップ</a><span>/</span>${event ? `<a href="#/year/${year}">${year}</a><span>/</span><span>${esc(event.name)}</span>` : `<span>${year}</span>`}</nav>`; }
 function home() {
- document.title = '編集局アルバム';
  main.innerHTML = `<section class="hero" aria-label="写真一覧"><div class="photo-wall" aria-hidden="true"></div><div class="hero-note"><h1>編集局アルバム</h1></div></section><section class="section-wrap" id="years"><div class="section-heading"><h2>年度</h2></div><div class="year-list">${[2026,2025,2024].map(y => {
  const list = events.filter(e => e.year === y);
  if (!list.length) return `<article class="year-card pending"><div class="year-top"><span class="year-number">${y}</span></div><div class="year-empty"><span>cooming soon</span></div></article>`;
@@ -128,13 +127,11 @@ function startCoverFades() {
 }
 function yearPage(year) {
  const list=events.filter(e=>e.year===year).sort((a,b)=>eventRank(a)-eventRank(b));
- document.title=`${year}年のアルバム | 編集局アルバム`;
  if(!list.length){main.innerHTML=`<section class="inner-page">${breadcrumb(year)}<div class="empty-page"><h1>${year}</h1><p>cooming soon</p><a class="back-link" href="#/">← トップへ</a></div></section>`;return;}
  main.innerHTML=`<section class="inner-page">${breadcrumb(year)}<div class="page-heading"><div><h1>${year}</h1></div></div><div class="event-grid">${list.map((e,i)=>`<a class="event-card" href="#/event/${e.id}"><div class="event-cover" data-cover-event="${e.id}">${photoImage(cover(e),e.name)}</div><div class="event-meta"><div><h2>${esc(e.name)}</h2></div>${arrow}</div></a>`).join('')}</div><a class="back-link" href="#/">← トップへ</a></section>`;
 }
 function eventPage(event) {
  activeEvent={...event,photos:shuffled(event.photos)};galleryShown=0;
- document.title=`${event.name} · ${event.year} | 編集局アルバム`;
  main.innerHTML=`<section class="inner-page">${breadcrumb(event.year,event)}<div class="page-heading event-heading"><div><div class="eyebrow">${event.year}</div><h1>${esc(event.name)}</h1></div></div><div class="gallery-tools"><span>写真をタップして拡大</span><a href="#/year/${event.year}">イベント一覧 ↗</a></div><div class="gallery" id="gallery"></div><div class="more-wrap"><button id="load-more" class="more-button">もっと見る ＋</button><p id="gallery-end" class="gallery-end" role="status" hidden>すべての写真を表示しました。</p></div><a class="back-link" href="#/year/${event.year}">← ${event.year}年のイベントへ</a></section>`;
  setupGallery();
  document.querySelector('#load-more').onclick=appendPhotos;
@@ -282,6 +279,7 @@ window.addEventListener('pointerup',e=>releaseViewerPointer(e));
 window.addEventListener('pointercancel',e=>releaseViewerPointer(e,true));
 window.addEventListener('resize',()=>{if(viewer.open)resetViewerMotion();});
 function route(){
+ document.title='編集局アルバム';
  wallCleanup();wallCleanup=()=>{};
  coverCleanup();coverCleanup=()=>{};
  galleryCleanup();galleryCleanup=()=>{};
