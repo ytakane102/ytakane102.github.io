@@ -289,4 +289,4 @@ function route(){
  if(hash==='#years')requestAnimationFrame(()=>document.querySelector('#years')?.scrollIntoView());else window.scrollTo(0,0);
 }
 window.addEventListener('hashchange',route);
-fetch('./assets/album.json').then(r=>{if(!r.ok)throw new Error('Album loading failed');return r.json();}).then(data=>{events=data.events;route();}).catch(()=>{main.innerHTML='<div class="loading">アルバムを読み込めませんでした。<br><br><button class="more-button" onclick="location.reload()">もう一度読み込む</button></div>';});
+fetch('./assets/album.json?v=all-years-9').then(r=>{if(!r.ok)throw new Error('Album loading failed');return r.json();}).then(data=>{events=data.events;route();}).catch(()=>{main.innerHTML='<div class="loading">アルバムを読み込めませんでした。<br><br><button class="more-button" onclick="location.reload()">もう一度読み込む</button></div>';});
