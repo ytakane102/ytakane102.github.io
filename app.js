@@ -11,8 +11,12 @@ function shuffled(items) {
  for(let i=result.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[result[i],result[j]]=[result[j],result[i]];}
  return result;
 }
-const eventOrder = ['装飾・日常','夏合宿','海ドライブ','新歓合宿','運動会'];
-const eventRank = event => {const rank=eventOrder.indexOf(event.name);return rank<0?eventOrder.length:rank;};
+const eventOrders = {
+ 2026:['装飾・日常','夏合宿','海ドライブ','新歓合宿','運動会'],
+ 2025:['当日','装飾','前月祭','夏合宿','その他'],
+ 2024:['当日','装飾','前月祭','夏合宿','夏ドライブ','ディズニー','お別れ会','その他']
+};
+const eventRank = event => {const order=eventOrders[event.year]||[];const rank=order.indexOf(event.name);return rank<0?order.length:rank;};
 const cover = e => e.photos[Math.floor(Math.random()*e.photos.length)];
 const arrow = '<span class="round-arrow" aria-hidden="true">↗</span>';
 function breadcrumb(year, event) { return `<nav class="breadcrumbs" aria-label="パンくず"><a href="#/">トップ</a><span>/</span>${event ? `<a href="#/year/${year}">${year}</a><span>/</span><span>${esc(event.name)}</span>` : `<span>${year}</span>`}</nav>`; }
