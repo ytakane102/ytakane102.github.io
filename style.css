@@ -66,3 +66,10 @@ dialog figure.viewer-viewport{position:absolute;inset:76px 76px 60px;margin:0;wi
 @media(max-width:600px){.gallery{--gallery-columns:2;--gallery-gap:8px}}
 
 .more-wrap{overflow-anchor:none}
+
+.viewer-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.viewer-save{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 14px;border:1px solid #b49acb80;border-radius:24px;background:#4c267380;white-space:nowrap;font-size:12px}
+.viewer-save:hover{background:#6a3b9699}
+.viewer-save[aria-disabled="true"]{opacity:.5;cursor:wait}
+#viewer-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.viewer-top{gap:12px}

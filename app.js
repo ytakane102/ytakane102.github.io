@@ -186,6 +186,16 @@ function appendPhotos(){
 }
 const viewerViewport=document.querySelector('.viewer-viewport');
 const viewerTrack=document.querySelector('.viewer-track');
+const savePhoto=document.querySelector('#save-photo');
+function updateSavePhoto(){
+ const photo=activeEvent.photos[activeIndex];
+ savePhoto.href=src(photo,'full');
+ savePhoto.download=`編集局アルバム_${activeEvent.year}_${activeEvent.name}_${photo.id}.webp`;
+ savePhoto.setAttribute('aria-disabled','false');
+}
+savePhoto.addEventListener('click',event=>{
+ if(viewerAnimation||viewerDrag?.horizontal)event.preventDefault();
+});
 let viewerDrag=null, viewerAnimation=false, viewerTimer;
 const wrapPhoto=index=>(index+activeEvent.photos.length)%activeEvent.photos.length;
 function setViewerSlide(slide,index){
@@ -197,6 +207,7 @@ function positionViewer(offset=0){viewerTrack.style.transform=`translate3d(${-vi
 function resetViewerMotion(){
  clearTimeout(viewerTimer);viewerDrag=null;viewerAnimation=false;
  viewerTrack.classList.remove('is-animating');positionViewer();
+ if(activeEvent)updateSavePhoto();
 }
 function openViewer(event,index){
  activeEvent=event;activeIndex=index;lastFocus=document.activeElement;
@@ -210,6 +221,7 @@ function showPhoto(){
 function slideViewer(direction){
  if(!viewer.open||viewerAnimation)return;
  viewerAnimation=true;
+ savePhoto.setAttribute('aria-disabled','true');
  const finish=()=>{
   viewerTrack.classList.remove('is-animating');
   if(direction){
@@ -219,7 +231,7 @@ function slideViewer(direction){
    viewerTrack.querySelector('[id="viewer-image"]')?.removeAttribute('id');
    viewerTrack.children[1].querySelector('img').id='viewer-image';
   }
-  positionViewer();viewerAnimation=false;
+  positionViewer();viewerAnimation=false;updateSavePhoto();
  };
  if(reducedMotion.matches){finish();return;}
  // Commit the finger position before animating to the adjacent photograph.
